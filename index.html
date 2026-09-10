@@ -2329,6 +2329,533 @@ $("cUebersicht").onclick= uebersicht;
 verbinden();
 })();
 
+/* ===================================================================
+   KMU-SIMULATOR – FREITEXT-ENTSCHEIDE MIT KI-AUSWERTUNG (Variante B)
+   -------------------------------------------------------------------
+   Einbau: als weiteren <script>-Block vor </body>, NACH dem
+   Hauptskript und nach der Inhaltserweiterung.
+
+   Prinzip: Die teilnehmende Person schreibt ihr Vorgehen in eigenen
+   Worten. Der Cloudflare Worker ordnet den Text einem der hinterlegten
+   Handlungswege zu. Die Auswirkungen auf das KMU rechnet weiterhin
+   das deterministische Modell – die KI entscheidet nur, WELCHER Weg
+   beschrieben wurde.
+
+   Fällt der Worker aus, erscheinen automatisch die Auswahlknöpfe.
+   =================================================================== */
+(function(){
+"use strict";
+
+const WORKER_URL = "https://kmusim-ki.mschaedeli.workers.dev";
+const KI_FAELLE  = ["rekrutierung", "sperrfrist"];
+const MINDESTZEICHEN = 180;
+
+/* ---- Stil ------------------------------------------------------- */
+const stil = document.createElement("style");
+stil.textContent = `
+.kiBlock{border:1px solid var(--linie);background:#FBFBF9;padding:14px 16px;margin-bottom:14px}
+.kiBlock .kopf{display:flex;align-items:baseline;gap:9px;margin-bottom:8px;flex-wrap:wrap}
+.kiBlock .marke{background:#1F5C8B;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:9px;letter-spacing:.02em}
+.kiBlock .hinw{font-size:13px;color:var(--stahl);max-width:66ch;margin:0 0 10px}
+.kiBlock textarea{width:100%;min-height:150px;padding:10px 12px;border:1px solid var(--linie);
+  font:inherit;font-size:14px;line-height:1.55;resize:vertical;background:#fff;color:var(--tinte)}
+.kiBlock textarea:focus{outline:2px solid var(--blau);outline-offset:-1px;border-color:var(--blau)}
+.kiBlock .leiste{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.kiRueck{border-left:3px solid var(--blau);background:#fff;padding:13px 16px;margin-top:14px}
+.kiRueck.solide{border-left-color:var(--gruen)}
+.kiRueck.lueckenhaft{border-left-color:var(--signal)}
+.kiRueck .stufe{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--stahl)}
+.kiRueck p{margin:6px 0 0;font-size:14px;max-width:68ch}
+.kiRueck ul{margin:9px 0 0;padding-left:20px;font-size:13.5px}
+.kiRueck li{margin-bottom:3px}
+.kiRueck .weg{margin-top:11px;padding-top:10px;border-top:1px solid var(--linie);font-size:13.5px}
+.kiRueck .weg b{display:block;margin-bottom:2px}
+.kiWartet{font-size:13px;color:var(--stahl)}
+.kiFehler{border-left:3px solid var(--rot);background:#fff;padding:11px 15px;margin-top:12px;font-size:13.5px}
+#dsGate{position:fixed;inset:0;background:rgba(20,26,32,.75);display:flex;align-items:center;
+  justify-content:center;padding:22px;z-index:200}
+#dsGate .blatt{background:#fff;max-width:620px;width:100%;padding:26px 30px 28px;border-radius:5px;
+  box-shadow:0 12px 44px rgba(0,0,0,.35)}
+#dsGate h2{margin:0 0 12px;font-size:19px}
+#dsGate p{font-size:14px;max-width:64ch;margin:0 0 12px}
+#dsGate ul{font-size:14px;padding-left:20px;margin:0 0 14px}
+#dsGate li{margin-bottom:6px}
+#dsGate label{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:16px 0 4px}`;
+document.head.appendChild(stil);
+
+/* ---- Datenschutzhinweis ----------------------------------------- */
+function schonBestaetigt(){
+  try{ return localStorage.getItem("kmusim_ds") === "1"; }catch(e){ return false; }
+}
+function bestaetigen(){
+  try{ localStorage.setItem("kmusim_ds","1"); }catch(e){}
+}
+function datenschutzGate(){
+  if(schonBestaetigt()) return;
+  const g = document.createElement("div");
+  g.id = "dsGate";
+  g.innerHTML = `<div class="blatt">
+    <h2>Bevor Sie beginnen</h2>
+    <p>Diese Übungsumgebung verarbeitet Daten. Damit Sie wissen, welche:</p>
+    <ul>
+      <li><strong>Spielstand und Begründungen</strong> werden unter dem von Ihnen gewählten Klassen- und Teamnamen in einer Datenbank in der Schweiz gespeichert. Die Kursleitung kann sie einsehen.</li>
+      <li><strong>Ihre Entscheidtexte</strong> werden zur Auswertung an einen Sprachmodell-Dienst in den USA übermittelt. Die Texte werden dort nicht zum Training verwendet und von dieser Anwendung nicht protokolliert.</li>
+      <li><strong>Schreiben Sie keine echten Personendaten</strong> in die Textfelder – keine Namen von Mitarbeitenden, Kundinnen oder Dritten aus Ihrem Betrieb, keine Gesundheitsangaben, keine Lohndaten realer Personen. Die Namen im Fall sind erfunden und dürfen verwendet werden.</li>
+      <li>Die Auswertung dient der Simulation und Ihrer Selbsteinschätzung. Sie ist <strong>keine Prüfungsbewertung</strong> und fliesst in keine Note ein.</li>
+    </ul>
+    <label><input type="checkbox" id="dsHaken"> <span>Ich habe das gelesen und verstanden.</span></label>
+    <div class="knopfleiste" style="margin-top:14px">
+      <button class="knopf" id="dsWeiter" disabled>Verstanden, weiter</button>
+    </div></div>`;
+  document.body.appendChild(g);
+  const haken = document.getElementById("dsHaken");
+  const weiter = document.getElementById("dsWeiter");
+  haken.onchange = ()=> weiter.disabled = !haken.checked;
+  weiter.onclick = ()=>{ bestaetigen(); g.remove(); };
+}
+
+/* ---- Auswertung anfragen ---------------------------------------- */
+async function auswerten(fall, text){
+  const antwort = await fetch(WORKER_URL, {
+    method:"POST",
+    headers:{"content-type":"application/json"},
+    body: JSON.stringify({fall, text})
+  });
+  const daten = await antwort.json();
+  if(!antwort.ok) throw new Error(daten.fehler || "Auswertung fehlgeschlagen");
+  return daten;
+}
+
+/* ---- Umbau der Entscheidkarte ------------------------------------ */
+function karteUmbauen(ev){
+  const feld = document.querySelector('textarea[data-b="'+ev.id+'"]');
+  if(!feld) return;
+  const karte = feld.closest(".karte");
+  if(!karte || karte.dataset.ki) return;
+  karte.dataset.ki = "1";
+
+  const optionen = karte.querySelector(".optionen");
+  const begruendung = karte.querySelector(".begruendung");
+  const gespeichert = S.wahl[ev.id] || {};
+
+  optionen.style.display = "none";
+  begruendung.style.display = "none";
+
+  const block = document.createElement("div");
+  block.className = "kiBlock";
+  block.innerHTML = `
+    <div class="kopf"><span class="marke">Freitext</span>
+      <span style="font-size:13px;color:var(--stahl)">Kein Auswahlmenü – beschreiben Sie Ihr Vorgehen selbst.</span></div>
+    <p class="hinw">Wie gehen Sie vor, und warum? Nennen Sie die Ausgangslage, auf die Sie sich stützen, Ihre Massnahme und die Folgen, die Sie dabei in Kauf nehmen. Mindestens ${MINDESTZEICHEN} Zeichen. Keine echten Personendaten.</p>
+    <textarea id="kiText_${ev.id}" placeholder="Ich würde…">${gespeichert.begruendung||""}</textarea>
+    <div class="leiste">
+      <button class="knopf" id="kiSenden_${ev.id}">Vorgehen auswerten lassen</button>
+      <button class="knopf neben" id="kiOptionen_${ev.id}">Stattdessen aus Vorgaben wählen</button>
+      <span class="kiWartet" id="kiZaehler_${ev.id}"></span>
+    </div>
+    <div id="kiErgebnis_${ev.id}"></div>`;
+  optionen.parentNode.insertBefore(block, optionen);
+
+  const text = document.getElementById("kiText_"+ev.id);
+  const senden = document.getElementById("kiSenden_"+ev.id);
+  const zaehler = document.getElementById("kiZaehler_"+ev.id);
+  const ergebnis = document.getElementById("kiErgebnis_"+ev.id);
+
+  const pruefen = ()=>{
+    const n = text.value.trim().length;
+    zaehler.textContent = n >= MINDESTZEICHEN ? n+" Zeichen"
+      : "Noch "+(MINDESTZEICHEN-n)+" Zeichen";
+    senden.disabled = n < MINDESTZEICHEN;
+  };
+  text.oninput = pruefen; pruefen();
+
+  document.getElementById("kiOptionen_"+ev.id).onclick = ()=>{
+    optionen.style.display = "";
+    begruendung.style.display = "";
+    block.remove();
+    delete karte.dataset.ki;
+  };
+
+  senden.onclick = async ()=>{
+    senden.disabled = true;
+    const alt = senden.textContent;
+    senden.textContent = "Wird ausgewertet…";
+    ergebnis.innerHTML = `<div class="kiWartet" style="margin-top:10px">Der Text wird geprüft. Das dauert einige Sekunden.</div>`;
+    try{
+      const r = await auswerten(ev.id, text.value.trim());
+      anwenden(ev, text.value.trim(), r, ergebnis);
+    }catch(fehler){
+      ergebnis.innerHTML = `<div class="kiFehler"><strong>Auswertung nicht möglich.</strong><br>
+        ${fehler.message}<br><br>
+        Sie können es nochmals versuchen oder auf die Vorgaben ausweichen – die Simulation läuft in beiden Fällen weiter.</div>`;
+      senden.disabled = false;
+    }
+    senden.textContent = alt;
+    pruefen();
+  };
+}
+
+/* ---- Ergebnis übernehmen ----------------------------------------- */
+function anwenden(ev, text, r, ziel){
+  const haupt = r.zuordnung[0];
+  const zweit = r.zuordnung[1];
+  const mischung = zweit && zweit.gewicht >= 0.3;
+
+  // Das Modell rechnet mit dem dominanten Handlungsweg.
+  S.wahl[ev.id] = {
+    option: haupt.option,
+    begruendung: text,
+    ki: {
+      stufe: r.stufe, ausserhalb: r.ausserhalb,
+      rueckmeldung: r.rueckmeldung,
+      zuordnung: r.zuordnung.map(z=>({option:z.option, gewicht:z.gewicht}))
+    }
+  };
+
+  const stufentext = {solide:"Fachlich solide", teilweise:"Teilweise tragfähig", lueckenhaft:"Wesentliches fehlt"};
+  ziel.innerHTML = `
+    <div class="kiRueck ${r.stufe}">
+      <span class="stufe">${stufentext[r.stufe]||"Rückmeldung"}</span>
+      <p>${r.rueckmeldung}</p>
+      ${r.erkannt.length ? `<ul>${r.erkannt.map(e=>`<li>${e}</li>`).join("")}</ul>` : ""}
+      ${r.fehlend.length ? `<p style="margin-top:9px"><strong>Nicht angesprochen:</strong></p>
+        <ul>${r.fehlend.map(e=>`<li>${e}</li>`).join("")}</ul>` : ""}
+      <div class="weg">
+        <b>Das Modell rechnet mit diesem Weg:</b>
+        ${ev.optionen[haupt.option].label}
+        ${mischung ? `<br><span style="color:var(--stahl)">Ihr Text enthält auch Anteile von: ${ev.optionen[zweit.option].label}. Für die Berechnung zählt der überwiegende Weg; die Mischung ist im Journal vermerkt.</span>` : ""}
+        ${r.ausserhalb ? `<br><span style="color:var(--stahl)">Ihr Vorgehen geht über die hinterlegten Wege hinaus. Das Modell rechnet mit dem nächstliegenden – für das Debriefing ist Ihr eigener Ansatz vermerkt.</span>` : ""}
+      </div>
+    </div>`;
+
+  // Abschlussknopf aktualisieren
+  const btn = document.getElementById("abschluss");
+  if(btn) btn.disabled = !alleEntschieden();
+  const st = document.getElementById("abschlussStatus");
+  if(st) st.textContent = alleEntschieden() ? "" : "Erst wenn jeder Entscheid gewählt und begründet ist.";
+  if(typeof warnbalkenRendern === "function") warnbalkenRendern();
+}
+
+/* ---- Journal um die KI-Rückmeldung ergänzen ---------------------- */
+const abschlussOriginal = periodeAbschliessen;
+periodeAbschliessen = function(){
+  const merker = {};
+  KI_FAELLE.forEach(id=>{ if(S.wahl[id] && S.wahl[id].ki) merker[id] = S.wahl[id].ki; });
+  const ergebnis = abschlussOriginal.apply(this, arguments);
+  Object.keys(merker).forEach(id=>{
+    const ev = EREIGNISSE.find(e=>e.id===id);
+    const eintrag = S.journal.find(j=>j.titel===(ev&&ev.titel));
+    if(eintrag){
+      eintrag.gewaehlt += " (Freitext, Zuordnung durch Auswertung)";
+      eintrag.kiRueckmeldung = merker[id].rueckmeldung;
+      eintrag.kiStufe = merker[id].stufe;
+    }
+  });
+  return ergebnis;
+};
+
+/* ---- An zeichnen() anhängen -------------------------------------- */
+const zeichnenOriginal = zeichnen;
+zeichnen = function(){
+  const ergebnis = zeichnenOriginal.apply(this, arguments);
+  if(aktiverReiter === "entscheide" && !S.beendet){
+    EREIGNISSE.filter(e => e.periode===S.periode && KI_FAELLE.includes(e.id) && !S.erledigt.includes(e.id))
+              .forEach(karteUmbauen);
+  }
+  return ergebnis;
+};
+
+datenschutzGate();
+zeichnen();
+})();
+
+/* ===================================================================
+   KMU-SIMULATOR – MARKE, SPIELERANMELDUNG, PERSONENBILDER
+   -------------------------------------------------------------------
+   Einbau: als weiteren <script>-Block vor </body>, NACH allen
+   bisherigen Blöcken (Hauptskript, Erweiterung, Firebase, KI).
+
+   Erwartete Dateien im Repository:
+     Graphics/Brands/BaertschiMetalltechAG.jpeg
+     Graphics/Staff/m01.jpeg
+     Graphics/Staff/w01.jpeg
+
+   Alle Pfade relativ – funktioniert unter /kmusim/ auf GitHub Pages
+   genauso wie lokal.
+   =================================================================== */
+(function(){
+"use strict";
+
+const LOGO = "Graphics/Brands/BaertschiMetalltechAG.jpeg";
+
+/* ===================================================================
+   1) PERSONENREGISTER
+   Schlüssel ist die E-Mail-Adresse, weil sie in allen Nachrichten
+   eindeutig ist. Neue Bilder: hier einen Eintrag ergänzen, sonst
+   nichts.
+   =================================================================== */
+const PERSONEN = {
+  "r.stucki@baertschi-metalltech.ch":  { bild:"Graphics/Staff/m01.jpeg", funktion:"Leiter Finanzen und Rechnungswesen" },
+  "s.lehmann@baertschi-metalltech.ch": { bild:"Graphics/Staff/w01.jpeg", funktion:"Assistentin der Geschäftsleitung" }
+};
+function person(adresse){ return PERSONEN[(adresse||"").toLowerCase()] || null; }
+
+/* --- Finanzleitung männlich: m01.jpeg zeigt einen Mann ------------ */
+function textAnpassen(t){
+  return typeof t === "string"
+    ? t.replace(/Regula Stucki/g, "Roland Stucki")
+       .replace(/Leiterin Finanzen und Rechnungswesen/g, "Leiter Finanzen und Rechnungswesen")
+    : t;
+}
+[EREIGNISSE, ZUSATZPOST].forEach(liste=>{
+  liste.forEach(n=>{
+    ["von","titel","betreff","mail","koerper","signatur","lage"].forEach(f=>{
+      if(n[f]) n[f] = textAnpassen(n[f]);
+    });
+    if(n.optionen) n.optionen.forEach(o=>{ o.label = textAnpassen(o.label); o.folge = textAnpassen(o.folge); });
+    if(n.muster) n.muster.warum = textAnpassen(n.muster.warum);
+  });
+});
+
+/* --- Die Assistentin bekommt eine eigene Nachricht in Q1 ---------- */
+if(!ZUSATZPOST.some(z=>z.id === "rueckkehr")){
+  ZUSATZPOST.push({
+    id:"rueckkehr", periode:0,
+    von:"Sina Lehmann", adresse:"s.lehmann@baertschi-metalltech.ch", zeit:"07:02",
+    betreff:"Willkommen zurück – Ihre Woche auf einen Blick",
+    koerper:`Guten Morgen
+
+Schön, dass Sie wieder da sind. Die Produktionssitzung beginnt um 8.30 Uhr, Sie haben also gut eine halbe Stunde für den Posteingang.
+
+Zwei Hinweise: Herr Zwahlen und Herr Aebi haben beide zum Laser geschrieben, ich bin aus den zwei Mails nicht ganz schlau geworden. Und Frau Frei von Medtec hat gestern zweimal angerufen.
+
+Den Rest habe ich abgefangen.`,
+    signatur:"Sina Lehmann\nAssistentin der Geschäftsleitung",
+    muster:{prio:"C", aktion:"ablegen", warum:"Kein Handlungsbedarf – aber der Hinweis auf die zwei widersprüchlichen Lasermeldungen ist der wertvollste Satz im ganzen Posteingang. Wer ihn überliest, verschenkt eine Vorlage."}
+  });
+}
+
+/* ===================================================================
+   2) MARKE IM KOPF
+   =================================================================== */
+const stil = document.createElement("style");
+stil.textContent = `
+header.app{align-items:center}
+header.app .marke{display:flex;align-items:center;gap:13px}
+header.app .logo{height:38px;width:auto;border-radius:3px;background:#fff;padding:3px;flex:none}
+header.app .spieler{font-size:12px;color:#93A2AE;margin-top:2px}
+header.app .spieler b{color:#DCE5EB;font-weight:600}
+header.app .spieler button{background:none;border:0;color:#7E909F;font:inherit;font-size:12px;
+  text-decoration:underline;cursor:pointer;padding:0 0 0 6px}
+header.app .spieler button:hover{color:#E8B400}
+
+#anmeldung{position:fixed;inset:0;background:rgba(20,26,32,.78);display:flex;align-items:center;
+  justify-content:center;padding:22px;z-index:150}
+#anmeldung .blatt{background:#fff;max-width:520px;width:100%;padding:0 0 26px;border-radius:5px;
+  box-shadow:0 12px 44px rgba(0,0,0,.35);overflow:hidden}
+#anmeldung .kopf{background:var(--tinte);color:#fff;padding:18px 28px;display:flex;align-items:center;gap:14px}
+#anmeldung .kopf img{height:44px;border-radius:3px;background:#fff;padding:3px}
+#anmeldung .kopf h2{margin:0;font-size:17px;font-weight:600}
+#anmeldung .kopf div span{font-size:12.5px;color:#93A2AE}
+#anmeldung .rumpf{padding:22px 28px 0}
+#anmeldung p{font-size:14px;max-width:60ch;margin:0 0 18px}
+#anmeldung .reihe{display:flex;gap:12px;flex-wrap:wrap}
+#anmeldung .feld{flex:1;min-width:150px;margin-bottom:14px}
+#anmeldung label{display:block;font-size:12.5px;color:var(--stahl);margin-bottom:4px}
+#anmeldung input{width:100%;padding:9px 11px;border:1px solid var(--linie);font:inherit;font-size:14.5px;
+  background:#fff;color:var(--tinte)}
+#anmeldung input:focus{outline:2px solid var(--blau);outline-offset:-1px;border-color:var(--blau)}
+
+.portrait{width:100%;height:100%;object-fit:cover;display:block}
+#postfach .avatar{overflow:hidden;padding:0}
+.karte .kartenkopf.mitBild{display:flex;align-items:center;gap:13px}
+.karte .kartenkopf .kopfbild{width:44px;height:44px;border-radius:50%;overflow:hidden;flex:none;
+  background:#5b6b7d;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px}
+blockquote.zitat cite .mitPortraet{display:inline-flex;align-items:center;gap:8px}
+blockquote.zitat cite img{width:26px;height:26px;border-radius:50%;object-fit:cover;vertical-align:middle}`;
+document.head.appendChild(stil);
+
+const kopf = document.querySelector("header.app");
+const ersterBlock = kopf.firstElementChild;
+const marke = document.createElement("div");
+marke.className = "marke";
+marke.innerHTML = `<img class="logo" src="${LOGO}" alt="Bärtschi Metalltech AG"
+  onerror="this.style.display='none'">`;
+kopf.insertBefore(marke, ersterBlock);
+marke.appendChild(ersterBlock);
+const spielerzeile = document.createElement("div");
+spielerzeile.className = "spieler";
+ersterBlock.appendChild(spielerzeile);
+
+function kopfAktualisieren(){
+  const s = S.spieler;
+  spielerzeile.innerHTML = s
+    ? `Geschäftsleitung: <b>${s.vorname} ${s.name}</b> · Klasse ${s.klasse}<button id="spielerAendern">ändern</button>`
+    : "";
+  const b = document.getElementById("spielerAendern");
+  if(b) b.onclick = ()=>anmeldung(true);
+}
+
+/* ===================================================================
+   3) SPIELERANMELDUNG
+   =================================================================== */
+function gespeichert(){
+  try{ return JSON.parse(localStorage.getItem("kmusim_spieler")||"null"); }catch(e){ return null; }
+}
+function merken(s){
+  try{ localStorage.setItem("kmusim_spieler", JSON.stringify(s)); }catch(e){}
+}
+
+function anmeldung(erzwingen){
+  if(!erzwingen && S.spieler) return;
+  if(document.getElementById("anmeldung")) return;
+  const vor = S.spieler || gespeichert() || {vorname:"",name:"",klasse:""};
+
+  const g = document.createElement("div");
+  g.id = "anmeldung";
+  g.innerHTML = `<div class="blatt">
+    <div class="kopf">
+      <img src="${LOGO}" alt="" onerror="this.style.display='none'">
+      <div><h2>Bärtschi Metalltech AG</h2><span>Führungssimulation · acht Quartale</span></div>
+    </div>
+    <div class="rumpf">
+      <p>Sie übernehmen die Leitung der Auftragsabwicklung und einen Sitz in der Geschäftsleitung. Tragen Sie zuerst ein, wer Sie sind – der Name erscheint auf dem Entscheidungsjournal und ordnet Ihren Spielstand der Klasse zu.</p>
+      <div class="reihe">
+        <div class="feld"><label for="aVorname">Vorname</label><input id="aVorname" value="${vor.vorname}" autocomplete="given-name"></div>
+        <div class="feld"><label for="aName">Name</label><input id="aName" value="${vor.name}" autocomplete="family-name"></div>
+      </div>
+      <div class="feld"><label for="aKlasse">Klasse</label><input id="aKlasse" value="${vor.klasse}" placeholder="LTKa26"></div>
+      <div class="knopfleiste" style="margin-top:6px">
+        <button class="knopf" id="aStart" disabled>Simulation starten</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(g);
+
+  const felder = ["aVorname","aName","aKlasse"].map(id=>document.getElementById(id));
+  const start = document.getElementById("aStart");
+  const pruefen = ()=> start.disabled = felder.some(f=>f.value.trim().length < 2);
+  felder.forEach(f=>{
+    f.oninput = pruefen;
+    f.onkeydown = e=>{ if(e.key === "Enter" && !start.disabled) start.click(); };
+  });
+  pruefen();
+  felder[0].focus();
+
+  start.onclick = ()=>{
+    S.spieler = {vorname:felder[0].value.trim(), name:felder[1].value.trim(), klasse:felder[2].value.trim()};
+    merken(S.spieler);
+    g.remove();
+    kopfAktualisieren();
+    cloudleisteFuellen();
+    zeichnen();
+  };
+}
+
+/* Klasse und Team in die Cloudleiste übernehmen */
+function cloudleisteFuellen(){
+  if(!S.spieler) return;
+  const k = document.getElementById("cKlasse");
+  const t = document.getElementById("cTeam");
+  if(k && !k.value) { k.value = S.spieler.klasse; k.dispatchEvent(new Event("change")); }
+  if(t && !t.value) { t.value = S.spieler.vorname+" "+S.spieler.name; t.dispatchEvent(new Event("change")); }
+}
+
+/* Erst nach dem Datenschutzhinweis fragen */
+function wartenAufDatenschutz(){
+  if(document.getElementById("dsGate")) return setTimeout(wartenAufDatenschutz, 300);
+  anmeldung(false);
+}
+
+/* ===================================================================
+   4) PORTRÄTS IM POSTFACH UND AUF DEN ENTSCHEIDKARTEN
+   =================================================================== */
+function portraetEinsetzen(behaelter, adresse){
+  const p = person(adresse);
+  if(!p || !behaelter) return;
+  const bild = document.createElement("img");
+  bild.className = "portrait";
+  bild.src = p.bild;
+  bild.alt = "";
+  bild.onerror = ()=>bild.remove();          // Bild fehlt: Initialen bleiben
+  behaelter.textContent = "";
+  behaelter.appendChild(bild);
+}
+
+/* Lesebereich des Postfachs */
+const mailOeffnenOriginal = mailOeffnen;
+mailOeffnen = function(id){
+  const ergebnis = mailOeffnenOriginal.apply(this, arguments);
+  const n = postkorbListe().find(x=>x.id===id);
+  if(n){
+    portraetEinsetzen(document.querySelector("#postfach .kopfblock .avatar"), n.adresse);
+    const p = person(n.adresse);
+    const an = document.querySelector("#postfach .kopfblock .an");
+    if(p && an) an.textContent = p.funktion + " · an " + (S.spieler ? S.spieler.vorname+" "+S.spieler.name : "Andrea Keller");
+    else if(an && S.spieler) an.textContent = "an " + S.spieler.vorname + " " + S.spieler.name;
+  }
+  return ergebnis;
+};
+
+/* Entscheidkarten */
+function karteBebildern(ev){
+  const feld = document.querySelector('textarea[data-b="'+ev.id+'"], .kiBlock textarea[id="kiText_'+ev.id+'"]');
+  const karte = feld ? feld.closest(".karte") : null;
+  if(!karte) return;
+  const kopfEl = karte.querySelector(".kartenkopf");
+  if(!kopfEl || kopfEl.dataset.bild) return;
+  const p = person(ev.adresse);
+  if(!p) return;
+  kopfEl.dataset.bild = "1";
+  kopfEl.classList.add("mitBild");
+  const huelle = document.createElement("div");
+  huelle.className = "kopfbild";
+  huelle.textContent = ev.von.split(" ").slice(0,2).map(w=>w[0]).join("");
+  kopfEl.insertBefore(huelle, kopfEl.firstChild);
+  portraetEinsetzen(huelle, ev.adresse);
+}
+
+/* ===================================================================
+   5) An zeichnen() anhängen
+   =================================================================== */
+const zeichnenOriginal = zeichnen;
+zeichnen = function(){
+  const ergebnis = zeichnenOriginal.apply(this, arguments);
+  kopfAktualisieren();
+  cloudleisteFuellen();
+  if(aktiverReiter === "entscheide" && !S.beendet){
+    EREIGNISSE.filter(e=>e.periode===S.periode && !S.erledigt.includes(e.id)).forEach(karteBebildern);
+  }
+  return ergebnis;
+};
+
+/* ===================================================================
+   6) Name im Journalexport
+   =================================================================== */
+const exportOriginal = journalExportieren;
+journalExportieren = function(){
+  const s = S.spieler;
+  if(!s) return exportOriginal.apply(this, arguments);
+  const alt = document.createElement;              // Download abfangen und Kopf ergänzen
+  let inhalt = null;
+  const blobOriginal = window.Blob;
+  window.Blob = function(teile, opt){
+    if(inhalt === null && Array.isArray(teile) && typeof teile[0] === "string"){
+      teile = ["Entscheidungsjournal\n"+s.vorname+" "+s.name+" · Klasse "+s.klasse+
+               "\nBärtschi Metalltech AG\n\n" + teile[0].replace(/^Entscheidungsjournal[^\n]*\n\n/, "")];
+      inhalt = true;
+    }
+    return new blobOriginal(teile, opt);
+  };
+  const ergebnis = exportOriginal.apply(this, arguments);
+  window.Blob = blobOriginal;
+  document.createElement = alt;
+  return ergebnis;
+};
+
+wartenAufDatenschutz();
+zeichnen();
+})();
+
 </script>
 </body>
 </html>
