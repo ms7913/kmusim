@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bärtschi Metalltech AG – Führungssimulation</title>
+<meta name="description" content="Management-Simulator für die Ausbildung technischer Kaufleute">
 <style>
 :root{
   --papier:#E9EBE7; --flaeche:#FFFFFF; --tinte:#16202B; --stahl:#5E6B76;
@@ -246,7 +247,7 @@ blockquote.zitat cite{display:block;margin-top:6px;font-size:13px;font-style:nor
    1) FESTWERTE
    =================================================================== */
 const K = {
-  erloesProStunde:230, materialProStunde:94.35, lohnkostenProMaJahr:85940,
+  erloesProStunde:281, materialProStunde:115.06, lohnkostenProMaJahr:85940,
   betriebsaufwandQuartal:787500, abschreibungQuartal:295000,
   stundenProMaQuartal:387.5, anteilSchweissen:0.234,
   zinsHypothek:0.019, zinsDarlehen:0.024, zinsKontokorrent:0.045,
@@ -274,11 +275,11 @@ function startZustand(){
     inEinarbeitung:[], verwaltung:33, lernende:6,
     motivation:0.72, ueberzeitSaldo:4850, fluktuation:0.112, absenzquote:0.034,
     knowhow:1.00, lohnindex:1.00, weiterbildungQuartal:24000,
-    ausschreibungen:2, ueberzeitAuszahlen:false,
+    ausschreibungen:3, ueberzeitAuszahlen:false,
     reputation:1.00, termintreue:0.91, auslastung:0.82, ausschuss:0.024,
     preisindex:1.00, zahlungszielTage:54, zweiSchicht:false, marketingQuartal:99000,
     energiezuschlag:0, zusatzAbschreibung:0, zusatzFixkosten:0,
-    motivationBonus:0, knowhowBonus:0, einmalkosten:0,
+    motivationBonus:0, knowhowBonus:0, einmalkosten:0, investition:0,
     erledigt:[], journal:[], meldungen:[], ergebnisse:[], wahl:{},
     postkorb:{}, gelesen:[], archiviert:[], postkorbBilanz:[], beendet:false
   };
@@ -352,7 +353,7 @@ Ich brauche einen Entscheid, sonst plane ich weiter auf Sicht.`,
   lage:"Der Kontokorrent ist beansprucht, die Liquidität nicht üppig.",
   optionen:[
     {label:"Sofort ersetzen, über den Kontokorrent finanziert", folge:"Kapazität und Termintreue steigen, Liquidität wird knapp.",
-     wirkung:s=>{s.einmalkosten+=850000; s.anlagevermoegen+=850000; s.zusatzAbschreibung+=850000/32; s.termintreueBonus=(s.termintreueBonus||0)+0.03;}},
+     wirkung:s=>{s.investition=(s.investition||0)+850000; s.anlagevermoegen+=850000; s.zusatzAbschreibung+=850000/32; s.termintreueBonus=(s.termintreueBonus||0)+0.03;}},
     {label:"Über ein Investitionsdarlehen finanzieren (2.4 %, 5 Jahre)", folge:"Liquidität geschont, Verschuldung steigt.",
      wirkung:s=>{s.darlehen+=850000; s.anlagevermoegen+=850000; s.zusatzAbschreibung+=850000/32; s.termintreueBonus=(s.termintreueBonus||0)+0.03;}},
     {label:"Noch ein Jahr weiterfahren, Wartungsvertrag ausbauen", folge:"Kein Kapitalabfluss, laufende Störungen.",
@@ -445,7 +446,7 @@ Alternativ könnten wir den Anstieg über die Preise weitergeben. Das müsste al
   lage:"",
   optionen:[
     {label:"Abwärmenutzung installieren", folge:"Einmalige Investition, dauerhaft tiefere Fixkosten.",
-     wirkung:s=>{s.einmalkosten+=240000; s.anlagevermoegen+=240000; s.zusatzAbschreibung+=240000/40; s.energiezuschlag-=26000;}},
+     wirkung:s=>{s.investition=(s.investition||0)+240000; s.anlagevermoegen+=240000; s.zusatzAbschreibung+=240000/40; s.energiezuschlag-=26000;}},
     {label:"Energiekosten an die Kunden weitergeben", folge:"Marge gehalten, Preis steigt gegen den Markt.",
      wirkung:s=>{s.preisindex=r3(s.preisindex+0.018);}},
     {label:"Abwarten, die Preise beruhigen sich womöglich", folge:"Keine Investition, volle Kostenlast.",
@@ -494,9 +495,9 @@ Ersatz des ERP mit Betriebsdatenerfassung: CHF 380'000, drei Quartale Projektdau
   lage:"",
   optionen:[
     {label:"ERP ersetzen und Betriebsdatenerfassung einführen", folge:"Kalkulation wird belastbar, das Projekt kostet Kapazität.",
-     wirkung:s=>{s.einmalkosten+=380000; s.anlagevermoegen+=380000; s.zusatzAbschreibung+=380000/20; s.ausschuss-=0.005; s.zusatzFixkosten+=20000; s.motivationBonus-=0.02;}},
+     wirkung:s=>{s.investition=(s.investition||0)+380000; s.anlagevermoegen+=380000; s.zusatzAbschreibung+=380000/20; s.ausschuss-=0.005; s.zusatzFixkosten+=20000; s.motivationBonus-=0.02;}},
     {label:"Nur die Betriebsdatenerfassung nachrüsten", folge:"Kleiner Schritt, geringes Risiko.",
-     wirkung:s=>{s.einmalkosten+=95000; s.anlagevermoegen+=95000; s.zusatzAbschreibung+=95000/20; s.ausschuss-=0.002;}},
+     wirkung:s=>{s.investition=(s.investition||0)+95000; s.anlagevermoegen+=95000; s.zusatzAbschreibung+=95000/20; s.ausschuss-=0.002;}},
     {label:"Zurückstellen bis nach der Nachfolgeregelung", folge:"Kalkulation bleibt Schätzung.",
      wirkung:s=>{}}
   ]},
@@ -542,7 +543,7 @@ Wir bedauern diesen Schritt und danken für Ihr Verständnis für die aktuelle M
     {label:"Beim Lieferanten bleiben und die Jahresmenge verhandeln", folge:"Beziehung gesichert, Preisvorteil kleiner.",
      wirkung:s=>{s.materialrabatt=(s.materialrabatt||0)+0.015;}},
     {label:"Lagerbestand aufbauen, bevor der Preis erneut steigt", folge:"Kurzfristig günstiger, bindet Kapital.",
-     wirkung:s=>{s.einmalkosten+=420000; s.vorraete+=420000;}}
+     wirkung:s=>{s.investition=(s.investition||0)+420000; s.vorraete+=420000;}}
   ]},
 
 { id:"absenz", periode:5, art:"fuehrung",
@@ -858,7 +859,7 @@ function kapazitaet(){
 function nachfrage(f){
   const preiseffekt = 1+K.preiselastizitaet*(S.preisindex-1);
   const marketing = 1+(S.marketingQuartal-99000)/99000*0.05;
-  return 31000*f*Math.max(0.3,preiseffekt)*S.reputation*marketing;
+  return 24500*f*Math.max(0.3,preiseffekt)*S.reputation*marketing;
 }
 
 function personalPeriode(m){
@@ -878,7 +879,7 @@ function personalPeriode(m){
   S.motivationBonus = 0;
 
   S.absenzquote = grenze(0.028+(0.80-S.motivation)*0.075, 0.020, 0.095);
-  S.fluktuation = grenze(0.070+(0.80-S.motivation)*0.30, 0.040, 0.260);
+  S.fluktuation = grenze(0.055+(0.80-S.motivation)*0.26, 0.035, 0.240);
 
   const abgang = Math.round(produktivePersonen()*S.fluktuation/4);
   const bereiche = Object.keys(S.personal);
@@ -895,7 +896,7 @@ function personalPeriode(m){
   const ausschr = Math.min(S.ausschreibungen, offen);
   if(ausschr>0){
     S.einmalkosten += ausschr*K.kostenAusschreibung;
-    const quote = grenze(0.30+(S.lohnindex-1)*4+(S.motivation-0.72)*0.8+(S.rekrutierungsbonus||0), 0.05, 0.95);
+    const quote = grenze(0.45+(S.lohnindex-1)*4+(S.motivation-0.72)*0.8+(S.rekrutierungsbonus||0), 0.05, 0.95);
     const treffer = Math.round(ausschr*quote);
     for(let i=0;i<treffer;i++){
       let ziel=null, luecke=0;
@@ -945,7 +946,7 @@ function periodeRechnen(){
   const umsatz = verkaufte*K.erloesProStunde*S.preisindex;
   const material = verkaufte*K.materialProStunde*(1-(S.materialrabatt||0));
   const personal = gesamtPersonal()*K.lohnkostenProMaJahr*S.lohnindex/4 + (S.zweiSchicht?95000:0) + uzKosten + S.weiterbildungQuartal;
-  const uebrig = K.betriebsaufwandQuartal + S.energiezuschlag + S.zusatzFixkosten + (S.marketingQuartal-99000) + S.einmalkosten;
+  const uebrig = K.betriebsaufwandQuartal + (S.energiezuschlag + S.zusatzFixkosten)/4 + (S.marketingQuartal-99000) + S.einmalkosten;
   const abschreibung = K.abschreibungQuartal + S.zusatzAbschreibung;
   const zinsen = (S.hypothek*K.zinsHypothek + S.darlehen*K.zinsDarlehen + Math.max(0,S.kontokorrent)*K.zinsKontokorrent)/4;
   const ebitda = umsatz-material-personal-uebrig;
@@ -953,11 +954,12 @@ function periodeRechnen(){
   const vorSteuern = ebit-zinsen;
   const steuern = vorSteuern>0 ? vorSteuern*K.steuersatz : 0;
   const gewinn = vorSteuern-steuern;
-  S.einmalkosten = 0;
+  const investition = S.investition||0;
+  S.einmalkosten = 0; S.investition = 0;
 
   const fordNeu = umsatz*(S.zahlungszielTage/90);
   const ein = S.forderungen + umsatz - fordNeu;
-  const aus = material+personal+uebrig+zinsen+steuern+K.amortisationQuartal;
+  const aus = material+personal+uebrig+zinsen+steuern+K.amortisationQuartal+investition;
   S.forderungen = fordNeu;
   S.kasse += ein-aus;
   S.darlehen = Math.max(0,S.darlehen-K.amortisationQuartal);
@@ -973,7 +975,7 @@ function periodeRechnen(){
 
   S.anlagevermoegen -= abschreibung;
   S.eigenkapital += gewinn;
-  S.reputation = grenze(S.reputation+(tt-0.93)*0.9, 0.82, 1.18);
+  S.reputation = grenze(S.reputation+(tt-0.93)*0.9, 0.84, 1.08);
 
   if(auslastung>0.97) m.push({art:"schlecht", text:"Die Werkstatt läuft am Anschlag. Termintreue "+pct(tt,0)+", der Überzeitsaldo wächst."});
   if(auslastung<0.72) m.push({art:"schlecht", text:"Nur "+pct(auslastung,0)+" Auslastung. Die Fixkosten verteilen sich auf zu wenige Stunden."});
@@ -1663,6 +1665,670 @@ function journalExportieren(){
 function standExportieren(){ herunterladen("spielstand.json", JSON.stringify(S,null,2), "application/json"); }
 
 zeichnen();
+</script>
+
+<!-- ===== Inhaltserweiterung v0.4 ===== -->
+<script>
+/* ===================================================================
+   INHALTSERWEITERUNG v0.4 – Recht, Volkswirtschaft, Marketing
+   =================================================================== */
+(function(){
+"use strict";
+
+/* ---- Farbcodierung der neuen Themenfelder ---- */
+const stil = document.createElement("style");
+stil.textContent = `
+.karte .kartenkopf.recht{background:#EFEAF6;border-bottom-color:#6B3FA0}
+.karte .kartenkopf.vwl{background:#E7F0F4;border-bottom-color:#25708C}
+.karte .kartenkopf.markt{background:#EAF3EC;border-bottom-color:#2E6B4F}
+.eintrag.r{border-left-color:#6B3FA0}
+.eintrag.v{border-left-color:#25708C}
+.eintrag.m{border-left-color:#2E6B4F}`;
+document.head.appendChild(stil);
+
+const r3 = n => +n.toFixed(3);
+
+/* ===================================================================
+   NEUE ENTSCHEIDE
+   =================================================================== */
+EREIGNISSE.push(
+
+/* --- Q2 · MARKETING ---------------------------------------------- */
+{ id:"vertriebskanal", periode:1, art:"markt",
+  von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"07:34",
+  titel:"BM-Werkstattsystem: über welchen Kanal verkaufen wir das eigentlich?",
+  hkb:"F2 Marketingziele und -strategien · F3 Marktleistung planen · B1 Geschäftsmodell",
+  mail:`Guten Morgen Andrea
+
+Ich komme nochmals auf unser Eigenprodukt zurück. Das BM-Werkstattsystem macht 15 % vom Umsatz und hat mit 76 % den mit Abstand besten Deckungsbeitrag. Trotzdem verkaufen wir es praktisch nur an Bestandskunden, die zufällig davon erfahren.
+
+Drei Wege stehen zur Diskussion: eigener Aussendienst, Vertrieb über den technischen Fachhandel, oder ein eigener Webshop mit Konfigurator.
+
+Der Fachhandel würde 28 % Marge verlangen. Der Webshop kostet in der Entwicklung, gibt uns aber die Kundendaten und die Preishoheit.
+
+Ich hätte gern einen Grundsatzentscheid, bevor ich weiter Zeit in Einzelaktionen stecke.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"B", aktion:"selbst", warum:"Keine Frist, aber eine Grundsatzfrage zum margenstärksten Geschäftsfeld. Solche Entscheide wandern gern nach hinten, weil sie nie dringend werden – und genau deshalb bleibt das Eigenprodukt bei 15 %."},
+  lage:"Der Fachhandel bringt Reichweite, kostet aber fast die halbe Zusatzmarge. Der Webshop bindet Kapital und Aufmerksamkeit, gibt dafür Kundendaten und Preishoheit.",
+  optionen:[
+    {label:"Zwei Aussendienstmitarbeitende für das Eigenprodukt einstellen",
+     folge:"Höchste Marge pro Verkauf, teuerster und langsamster Aufbau.",
+     wirkung:s=>{s.verwaltung+=2; s.zusatzFixkosten+=54000; s.marketingQuartal+=15000; s.reputation+=0.02;}},
+    {label:"Vertrieb über den technischen Fachhandel, 28 % Handelsmarge",
+     folge:"Schnelle Reichweite, die Marge des Eigenprodukts sinkt auf Lohnfertigungsniveau.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex-0.015); s.reputation+=0.05;}},
+    {label:"Webshop mit Produktkonfigurator aufbauen",
+     folge:"Einmalige Investition, Kundendaten und Preishoheit bleiben im Haus, Wirkung erst nach Monaten.",
+     wirkung:s=>{s.investition=(s.investition||0)+145000; s.anlagevermoegen+=145000; s.zusatzAbschreibung+=145000/20; s.marketingQuartal+=12000; s.reputation+=0.03;}}
+  ]},
+
+/* --- Q3 · RECHT --------------------------------------------------- */
+{ id:"sperrfrist", periode:2, art:"recht",
+  von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"07:19", markiert:true,
+  titel:"Kündigung Vogt – am Tag danach kam das Arztzeugnis",
+  hkb:"C2 Alltagsführung · A7 Stakeholder · rechtliche Rahmenbedingungen (OR)",
+  mail:`Guten Morgen Andrea
+
+Wir haben Herrn Vogt am Montag ordentlich gekündigt, per Ende des übernächsten Monats. Er ist im siebten Dienstjahr.
+
+Gestern, also am Dienstag, ist ein Arztzeugnis eingegangen: 100 % arbeitsunfähig, vorerst für vier Wochen.
+
+Unser Treuhänder schreibt dazu: Die Kündigung selbst bleibt gültig, weil sie vor Beginn der Arbeitsunfähigkeit ausgesprochen wurde. Aber die Kündigungsfrist steht still, und zwar im siebten Dienstjahr bis zu 180 Tage. Danach läuft der Rest der Frist weiter, und weil sie auf ein Monatsende fallen muss, verlängert sich das Arbeitsverhältnis unter Umständen um Monate.
+
+Der Produktionsleiter geht davon aus, dass die Stelle in acht Wochen frei ist. Ich möchte, dass wir hier nicht auseinanderlaufen.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Rechtlich heikel und personalplanerisch relevant: Die Stelle bleibt womöglich Monate länger besetzt als geplant. Wer hier auf eigene Faust nachbessert, riskiert eine missbräuchliche Kündigung."},
+  lage:"Die Sperrfristregelung schützt die betroffene Person. Jede Reaktion, die als Druck ausgelegt werden kann, verschlechtert die Lage des Betriebs zusätzlich.",
+  optionen:[
+    {label:"Rechtslage akzeptieren, Personalplanung anpassen, Kontakt sachlich halten",
+     folge:"Kostet Planungssicherheit, ist aber die einzige Variante ohne Folgerisiko.",
+     wirkung:s=>{s.zusatzFixkosten+=26000; s.motivationBonus+=0.02;}},
+    {label:"Eine Aufhebungsvereinbarung mit Abgangsentschädigung anbieten",
+     folge:"Schafft Klarheit, kostet Geld – und muss für beide Seiten ausgewogen sein, sonst ist sie anfechtbar.",
+     wirkung:s=>{s.einmalkosten+=48000; s.motivationBonus-=0.01;}},
+    {label:"Ihn auffordern, das Zeugnis von einem Vertrauensarzt bestätigen zu lassen, und die Kündigung bestätigen",
+     folge:"Wirkt entschlossen, wird im Betrieb als Druckversuch gelesen und schwächt die eigene Position.",
+     wirkung:s=>{s.motivationBonus-=0.08; s.einmalkosten+=22000; s.reputation-=0.02;}}
+  ]},
+
+/* --- Q4 · VOLKSWIRTSCHAFT ---------------------------------------- */
+{ id:"frankenschock", periode:3, art:"vwl",
+  von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:02", markiert:true,
+  titel:"Euro bei 0.88 – unsere Exportmarge ist weg",
+  hkb:"B1 Risikomanagement · A1 Finanzanalyse · E1 Beschaffung · F3 Preisgestaltung",
+  mail:`Guten Morgen Andrea
+
+Die Nationalbank hat gestern den Leitzins gesenkt und interveniert offenbar nicht weiter. Der Euro steht heute Morgen bei 0.88, vor drei Monaten waren es 0.94.
+
+Für uns heisst das: 22 % unseres Umsatzes gehen nach Deutschland, fakturiert in Euro. Bei gleichem Eurobetrag erhalten wir rund 6 % weniger Franken. Das entspricht bei diesen Kunden ungefähr der gesamten Marge.
+
+Auf der anderen Seite wird unser Einkauf in der EU günstiger – wir beziehen rund einen Fünftel des Materials von dort.
+
+Ich sehe drei Wege und brauche einen Entscheid für die Offerten der nächsten Wochen.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"A", aktion:"selbst", warum:"Betrifft jede Offerte, die ab heute rausgeht. Wer wartet, verkauft in der Zwischenzeit zu Kursen von gestern – und der Effekt ist grösser als jede Sparübung im Betriebsaufwand."},
+  lage:"Ein Fünftel des Materials wird in der EU eingekauft – der Wechselkurs wirkt also auf beide Seiten der Rechnung, nur nicht gleich stark.",
+  optionen:[
+    {label:"Europreise um 5 % anheben und den Materialeinkauf konsequent in die EU verlagern",
+     folge:"Marge weitgehend gehalten, ein Teil der deutschen Kunden wird abspringen.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex+0.011); s.materialrabatt=(s.materialrabatt||0)+0.02; s.reputation-=0.04;}},
+    {label:"Kurse über Devisentermingeschäfte für zwölf Monate absichern",
+     folge:"Planungssicherheit gekauft, kostet Prämie, nimmt auch die Chance auf eine Erholung.",
+     wirkung:s=>{s.zusatzFixkosten+=38000;}},
+    {label:"Kurs aushalten, Marktanteil verteidigen, auf Erholung setzen",
+     folge:"Kein Kundenverlust, das Ergebnis trägt die Differenz.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex-0.014);}}
+  ]},
+
+/* --- Q5 · RECHT ---------------------------------------------------- */
+{ id:"videoueberwachung", periode:4, art:"recht",
+  von:"Beat Zwahlen", adresse:"b.zwahlen@baertschi-metalltech.ch", zeit:"07:41",
+  titel:"Materialschwund im Lager – ich möchte Kameras",
+  hkb:"A3 Arbeitsumfeld und Kultur · D3 Datenbestände · rechtliche Rahmenbedingungen (revDSG, ArGV 3)",
+  mail:`Andrea
+
+Uns fehlt seit Monaten Material. Nach der letzten Inventur reden wir über rund CHF 40'000 im Jahr, hauptsächlich Kleinteile und Werkzeug.
+
+Ich möchte vier Kameras: zwei im Aussenlager, zwei im Werkzeugmagazin. Ein Anbieter offeriert das inklusive Aufzeichnung für CHF 12'000.
+
+Nadia sagt, das sei rechtlich nicht so einfach. Ich sage: Wir bestehlen uns hier gegenseitig, und irgendwann ist auch Schluss mit Rücksicht.`,
+  signatur:"Beat Zwahlen\nProduktionsleiter",
+  muster:{prio:"B", aktion:"selbst", warum:"Kein Notfall, aber ein Entscheid, den man nicht dem Produktionsleiter überlassen sollte: Überwachungssysteme zur Verhaltenskontrolle am Arbeitsplatz sind nicht zulässig, und eine falsch aufgesetzte Anlage schafft ein zweites Problem neben dem Diebstahl."},
+  lage:"Systeme, die das Verhalten der Mitarbeitenden am Arbeitsplatz überwachen, sind nicht zulässig. Zulässig können Anlagen sein, die aus anderen Gründen nötig sind – etwa zum Schutz vor Einbruch – wenn sie verhältnismässig ausgestaltet sind und die Betroffenen informiert werden.",
+  optionen:[
+    {label:"Kameras nur an den Aussenzugängen, kein Arbeitsplatz im Bild, Belegschaft vorgängig informieren, Löschfrist definieren",
+     folge:"Rechtlich vertretbar, wirkt gegen Einbruch – gegen internen Schwund nur begrenzt.",
+     wirkung:s=>{s.einmalkosten+=9000; s.motivationBonus-=0.01;}},
+    {label:"Statt Kameras: Werkzeugausgabe mit Badge, Inventurrhythmus verkürzen, Thema offen im Team ansprechen",
+     folge:"Löst die Ursache über den Prozess, braucht Führungsarbeit statt Technik.",
+     wirkung:s=>{s.einmalkosten+=18000; s.zusatzFixkosten+=9000; s.motivationBonus+=0.03; s.knowhowBonus+=0.01;}},
+    {label:"Vier Kameras wie offeriert, inklusive Werkzeugmagazin, ohne grosse Ankündigung",
+     folge:"Schnell umgesetzt, rechtlich angreifbar und im Betrieb ein Vertrauensbruch.",
+     wirkung:s=>{s.einmalkosten+=12000; s.motivationBonus-=0.10; s.fluktuationsrisiko=true;}}
+  ]},
+
+/* --- Q6 · MARKETING ------------------------------------------------ */
+{ id:"klumpenrisiko", periode:5, art:"markt",
+  von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"07:26",
+  titel:"Zwei Kunden, 39 % Umsatz – wir müssen breiter werden",
+  hkb:"F1 Marktinformationen · F4 Kundenbeziehungen aufbauen · F2 Marketingstrategie",
+  mail:`Guten Morgen Andrea
+
+Ich habe die Umsatzverteilung aufbereitet. Medtec und Bahntechnik zusammen: 39 %. Die fünf grössten Kunden: 44 %.
+
+Jedes Mal, wenn einer von beiden hustet, planen wir das halbe Quartal um. Beim Rabattgespräch im Frühling haben wir das gespürt.
+
+Ich sehe drei Stossrichtungen: eine gezielte Akquise im Medizinaltechnik-Umfeld rund um Solothurn und Biel, wo wir Referenzen haben; ein Auftritt an der Prodex mit dem Eigenprodukt; oder ein systematischer Ausbau bei bestehenden mittleren Kunden, die heute nur einen Bruchteil ihres Volumens bei uns platzieren.
+
+Alle drei kosten Geld und Zeit des Innendiensts.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"B", aktion:"selbst", warum:"Strategisch wichtig, ohne Frist – die klassische Kategorie, die immer verliert. Das Klumpenrisiko ist bekannt, seit der Grosskunde im Frühling Rabatt gefordert hat; wer jetzt nicht handelt, handelt beim nächsten Mal unter Druck."},
+  lage:"Neukundenakquise wirkt frühestens nach zwei bis drei Quartalen. Der Ausbau bestehender Kunden wirkt schneller, verändert die Abhängigkeit aber kaum.",
+  optionen:[
+    {label:"Gezielte Neukundenakquise im Medtech-Umfeld der Region, mit Referenzprojekten",
+     folge:"Langsam, teuer, verändert die Abhängigkeit wirklich.",
+     wirkung:s=>{s.marketingQuartal+=42000; s.zusatzFixkosten+=24000; s.reputation+=0.06;}},
+    {label:"Messeauftritt an der Prodex mit dem Eigenprodukt",
+     folge:"Hohe Sichtbarkeit in kurzer Zeit, Streuverlust und einmalig teuer.",
+     wirkung:s=>{s.einmalkosten+=86000; s.reputation+=0.08;}},
+    {label:"Bestehende mittlere Kunden systematisch ausbauen (Anteil am Kundenbudget erhöhen)",
+     folge:"Schnellster Umsatzeffekt, das Klumpenrisiko bleibt.",
+     wirkung:s=>{s.marketingQuartal+=14000; s.reputation+=0.04;}}
+  ]},
+
+/* --- Q7 · VOLKSWIRTSCHAFT ------------------------------------------ */
+{ id:"kurzarbeit", periode:6, art:"vwl",
+  von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"06:52", markiert:true,
+  titel:"Auftragseingang −22 % – reden wir über Kurzarbeit?",
+  hkb:"A1 Strategie und Finanzen · C5 Teams führen · rechtliche Rahmenbedingungen (AVIG)",
+  mail:`Guten Morgen Andrea
+
+Der Auftragseingang liegt im laufenden Quartal 22 % unter Vorjahr. Die Konjunkturprognosen für die Maschinen-, Elektro- und Metallindustrie wurden diese Woche erneut nach unten korrigiert.
+
+Bei diesem Volumen fahren wir die Werkstatt bei rund 70 % Auslastung. Die Fixkosten laufen weiter.
+
+Kurzarbeitsentschädigung wäre grundsätzlich denkbar: Der Arbeitsausfall muss anrechenbar und vorübergehend sein, die Voranmeldung läuft über die kantonale Amtsstelle, und die betroffenen Mitarbeitenden müssen zustimmen. Entschädigt werden 80 % des anrechenbaren Verdienstausfalls, den Rest tragen wir.
+
+Alternativ bauen wir die Überzeit ab oder trennen uns von Leuten. Nur: Wenn es in zwei Quartalen wieder anzieht, finden wir Schweisser nicht auf Knopfdruck.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"A", aktion:"selbst", warum:"Konjunkturelle Delle mit sofortiger Kostenwirkung und einer Voranmeldefrist. Die eigentliche Frage ist nicht das Sparen, sondern ob man die Leute für den Aufschwung behält."},
+  lage:"Kurzarbeit ist für vorübergehende Ausfälle gedacht, nicht für strukturelle. Wer sie beantragt und gleichzeitig ausschreibt, wird sich erklären müssen.",
+  optionen:[
+    {label:"Kurzarbeit voranmelden, Belegschaft informieren, Zustimmung einholen",
+     folge:"Kosten sinken, Wissen bleibt im Haus, kostet Administration und Erklärung.",
+     wirkung:s=>{s.zusatzFixkosten-=640000; s.motivationBonus-=0.03; s.einmalkosten+=16000;}},
+    {label:"Überzeitsaldo abbauen, Ferien anordnen, keine Kurzarbeit",
+     folge:"Kostenwirkung kleiner, dafür kein administrativer Aufwand und kein Signal nach aussen.",
+     wirkung:s=>{s.ueberzeitSaldo=Math.max(0,s.ueberzeitSaldo-2200); s.motivationBonus+=0.02;}},
+    {label:"Personalbestand um sechs Stellen reduzieren",
+     folge:"Wirkt dauerhaft, trifft den Engpassbereich und kostet beim nächsten Aufschwung ein Vielfaches.",
+     wirkung:s=>{s.personal.montage-=3; s.personal.abkanten-=2; s.personal.laser-=1;
+                 s.einmalkosten+=210000; s.motivationBonus-=0.12; s.knowhowBonus-=0.04;}}
+  ]},
+
+/* --- Q8 · VOLKSWIRTSCHAFT ------------------------------------------ */
+{ id:"zinswende", periode:7, art:"vwl",
+  von:"Christian Marti", adresse:"christian.marti@bekb.ch", zeit:"07:33",
+  titel:"Refinanzierung Ihrer Hypothek – Offerte und Zinsniveau",
+  hkb:"A1 Finanzierung und Strategie · B1 Risikomanagement",
+  mail:`Sehr geehrte Frau Keller
+
+Ihre Festhypothek über CHF 4.2 Mio. läuft in 15 Monaten aus. Der aktuelle Satz von 1.9 % stammt aus einer anderen Zinswelt.
+
+Nach heutigem Stand liegen wir bei einer Neuabschliessung für zehn Jahre bei rund 3.4 %, für fünf Jahre bei 3.1 %. Eine variable Lösung liegt derzeit bei 2.8 %, mit entsprechendem Risiko.
+
+Die Differenz zum bisherigen Satz beträgt bei 3.4 % rund CHF 63'000 Mehrzins pro Jahr.
+
+Ich empfehle, den Entscheid nicht bis zum Ablauf zu schieben – eine Forward-Fixierung ist heute möglich.`,
+  signatur:"Christian Marti\nFirmenkundenberater, Berner Kantonalbank",
+  muster:{prio:"B", aktion:"selbst", warum:"15 Monate Vorlauf klingen komfortabel, aber die Fixierung ist heute möglich und morgen teurer. Ein Zinsentscheid über zehn Jahre gehört nicht in die Warteschlaufe."},
+  lage:"Der Mehrzins von CHF 63'000 pro Jahr entspricht rund 7 % des letzten EBIT.",
+  optionen:[
+    {label:"Forward-Fixierung über zehn Jahre zu 3.4 %",
+     folge:"Volle Planungssicherheit bis in die nächste Generation, teuerste Variante.",
+     wirkung:s=>{s.zusatzFixkosten+=16000; s.zinsfixiert=true;}},
+    {label:"Aufteilen: CHF 2.1 Mio. fest über fünf Jahre, CHF 2.1 Mio. variabel",
+     folge:"Halbes Risiko, halbe Sicherheit – die übliche Antwort, wenn niemand die Zinsen kennt.",
+     wirkung:s=>{s.zusatzFixkosten+=11000;}},
+    {label:"Vollständig variabel und auf sinkende Zinsen setzen",
+     folge:"Heute am günstigsten, im Ergebnis nicht planbar.",
+     wirkung:s=>{s.zusatzFixkosten+=4000; s.zinsrisiko=true;}}
+  ]}
+);
+
+/* ===================================================================
+   NEUE POSTKORB-NACHRICHTEN
+   =================================================================== */
+ZUSATZPOST.push(
+
+/* --- Q2 ---------------------------------------------------------- */
+{ id:"kofPrognose", periode:1, von:"Swissmem Mitgliederinformation", adresse:"info@swissmem.ch", zeit:"Fr 08:40",
+  betreff:"Quartalserhebung MEM-Industrie: Auftragseingang +1.4 %",
+  koerper:`Die Quartalserhebung zeigt für die Maschinen-, Elektro- und Metallindustrie einen leicht positiven Auftragseingang. Die Kapazitätsauslastung der befragten Betriebe liegt im Mittel bei 84 %.
+
+Als belastend nennen die Unternehmen erneut den Fachkräftemangel und die Energiekosten.`,
+  signatur:"Swissmem, Mitgliederinformation",
+  muster:{prio:"C", aktion:"ablegen", warum:"Brancheninformation ohne Handlungsbedarf – aber ein nützlicher Vergleichswert: 84 % Auslastung im Branchenmittel gegenüber dem eigenen Wert."}},
+
+{ id:"webanfragen", periode:1, von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"07:48",
+  betreff:"14 Anfragen über die Website – niemand bearbeitet sie",
+  koerper:`Ich habe das Kontaktformular ausgewertet: 14 Anfragen im letzten Quartal, davon acht mit konkretem Projekt. Beantwortet wurden vier, im Schnitt nach elf Tagen.
+
+Eine der unbeantworteten kam von einem Medizinaltechnikbetrieb aus Grenchen.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"B", aktion:"delegieren", warum:"Kein Notfall, aber verlorenes Geschäft, das nichts gekostet hätte. Zuständigkeit und Reaktionsfrist festlegen und delegieren."}},
+
+{ id:"arbeitszeugnis", periode:1, von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"08:22",
+  betreff:"Arbeitszeugnis Kunz – Entwurf zur Freigabe",
+  koerper:`Anbei der Entwurf für das Arbeitszeugnis von Ruedi Kunz. Beat möchte die Formulierung «arbeitete zu unserer Zufriedenheit» und einen Hinweis auf die Fehlzeiten im letzten Jahr.
+
+Ich habe Bedenken. Ein Zeugnis muss wahr und wohlwollend sein, und Fehlzeiten gehören nur hinein, wenn sie das Arbeitsverhältnis erheblich geprägt haben.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"B", aktion:"selbst", warum:"Ein Zeugnis muss wahr und wohlwollend sein und darf das Fortkommen nicht ohne Grund erschweren. Codierte Abwertungen fallen auf den Betrieb zurück – und die Personaladministration hat die Bedenken bereits formuliert."}},
+
+/* --- Q3 ---------------------------------------------------------- */
+{ id:"snbZins", periode:2, von:"BEKB Marktkommentar", adresse:"research@bekb.ch", zeit:"Fr 07:30",
+  betreff:"Marktkommentar: Teuerung 1.1 %, Zinsen vorerst stabil",
+  koerper:`Die Jahresteuerung liegt bei 1.1 %. Die Nationalbank belässt den Leitzins unverändert und verweist auf die gedämpfte Preisentwicklung.
+
+Für Unternehmen mit auslaufenden Festhypotheken bleibt das Refinanzierungsniveau deutlich über den Abschlüssen der Jahre 2019 bis 2021.`,
+  signatur:"BEKB, Research",
+  muster:{prio:"C", aktion:"ablegen", warum:"Hintergrund ohne Frist – aber der Hinweis auf auslaufende Festhypotheken betrifft uns in gut zwei Jahren. Notieren, nicht bearbeiten."}},
+
+{ id:"kundenumfrage", periode:2, von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"07:55",
+  betreff:"Kundenzufriedenheit: gute Noten, ein schlechter Wert",
+  koerper:`Die Auswertung liegt vor, 41 Rückmeldungen. Qualität 5.2 von 6, Beratung 5.0, Preis-Leistung 4.6.
+
+Der Ausreisser: Termintreue 3.9. Zwei Kunden schreiben sinngemäss, sie planten unsere Zusagen grundsätzlich mit Reserve.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"B", aktion:"selbst", warum:"Der Wert bestätigt, was die Betriebszahlen zeigen. Kunden, die Zusagen mit Reserve planen, sind auf dem Weg zur Zweitquelle."}},
+
+{ id:"spamDrucker", periode:2, stoerung:true, von:"Office Deal Schweiz", adresse:"angebot@officedeal-ch.com", zeit:"Do 21:03",
+  betreff:"Nur diese Woche: Toner und Bürobedarf bis 60 % günstiger",
+  koerper:`Sehr geehrte Damen und Herren, sichern Sie sich jetzt unsere Aktionspreise auf Toner, Papier und Bürobedarf. Angebot gültig bis Sonntag.`,
+  signatur:"Office Deal Schweiz",
+  muster:{prio:"C", aktion:"ablegen", warum:"Werbung. Löschen und weiter."}},
+
+/* --- Q4 ---------------------------------------------------------- */
+{ id:"exportkunde", periode:3, von:"Andreas Kienle", adresse:"a.kienle@kienle-antriebstechnik.de", zeit:"07:26",
+  betreff:"Preisanpassung – wir bitten um Verständnis für unsere Lage",
+  koerper:`Sehr geehrte Frau Keller
+
+Wir haben Ihre Ankündigung einer Preisanpassung erhalten. Bitte bedenken Sie, dass wir in Euro kalkulieren und Ihre Wechselkursentwicklung nicht an unsere Kunden weitergeben können.
+
+Ein süddeutscher Anbieter liegt aktuell 11 % unter Ihrem bisherigen Preis.`,
+  signatur:"Andreas Kienle\nKienle Antriebstechnik GmbH",
+  muster:{prio:"B", aktion:"selbst", warum:"Konkretisiert, was der Wechselkursentscheid für einen einzelnen Kunden bedeutet. Gehört zusammen mit diesem behandelt, nicht getrennt."}},
+
+{ id:"energieAgentur", periode:3, von:"Energie-Agentur der Wirtschaft", adresse:"kontakt@enaw.ch", zeit:"Do 14:12",
+  betreff:"Zielvereinbarung Energieeffizienz – Rückerstattung möglich",
+  koerper:`Betriebe mit einer Zielvereinbarung können sich unter bestimmten Voraussetzungen die Netzzuschläge zurückerstatten lassen und werden von der CO₂-Abgabe befreit.
+
+Der Anmeldeprozess dauert rund vier Monate.`,
+  signatur:"Energie-Agentur der Wirtschaft",
+  muster:{prio:"B", aktion:"delegieren", warum:"Direkter Bezug zum Energiekostenentscheid und finanziell relevant. Prüfung delegieren, Ergebnis in den Investitionsentscheid einfliessen lassen."}},
+
+{ id:"peko", periode:3, stoerung:true, von:"Personalkommission", adresse:"peko@baertschi-metalltech.ch", zeit:"Fr 16:50",
+  betreff:"Weihnachtsessen: Abstimmung über den Ort",
+  koerper:`Liebe Kolleginnen und Kollegen, bitte stimmt bis Ende Monat über den Ort des diesjährigen Weihnachtsessens ab. Zur Auswahl stehen drei Restaurants.`,
+  signatur:"Personalkommission",
+  muster:{prio:"C", aktion:"ablegen", warum:"Kein Entscheid der Geschäftsleitung nötig."}},
+
+/* --- Q5 ---------------------------------------------------------- */
+{ id:"kundenkonkurs", periode:4, von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:12",
+  betreff:"Konkurseröffnung über einen Kunden – CHF 68'000 offen",
+  koerper:`Über die Wyler Apparatebau AG ist gestern der Konkurs eröffnet worden. Offen sind CHF 68'000 aus vier Lieferungen.
+
+Wir haben in unseren AGB einen Eigentumsvorbehalt. Der Treuhänder weist allerdings darauf hin, dass ein Eigentumsvorbehalt nur wirksam ist, wenn er am Wohnsitz beziehungsweise Sitz des Erwerbers im Register eingetragen wurde – und das haben wir nie gemacht.
+
+Zudem sind die gelieferten Baugruppen längst verbaut.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"B", aktion:"selbst", warum:"Das Geld ist mit hoher Wahrscheinlichkeit verloren. Der eigentliche Handlungsbedarf liegt beim Prozess: Bonitätsprüfung, Vorauszahlung bei Neukunden, realistische Erwartung an den Eigentumsvorbehalt."}},
+
+{ id:"dsgAuskunft", periode:4, von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"07:58",
+  betreff:"Auskunftsbegehren eines ehemaligen Mitarbeiters",
+  koerper:`Herr Vogt verlangt schriftlich Auskunft über sämtliche Personendaten, die wir über ihn bearbeiten – inklusive Notizen aus Mitarbeitergesprächen und E-Mails, in denen er erwähnt wird.
+
+Nach Auskunft des Treuhänders ist ein solches Begehren grundsätzlich innert 30 Tagen und kostenlos zu beantworten.
+
+Ich brauche Unterstützung bei der Frage, was alles dazugehört.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Gesetzliche Frist von 30 Tagen und ein Thema, bei dem improvisieren teuer wird. Delegieren ohne fachliche Begleitung führt hier zuverlässig zu einer unvollständigen Antwort."}},
+
+{ id:"referenz", periode:4, von:"Marianne Frei", adresse:"m.frei@medtec-solutions.ch", zeit:"Do 10:35",
+  betreff:"Dürfen wir Sie als Referenz in unserem Fachartikel nennen?",
+  koerper:`Guten Tag Frau Keller
+
+Wir veröffentlichen im Branchenmagazin einen Fachbeitrag über unsere Fertigungstiefe und würden Sie gern als Zulieferer nennen, mit Foto aus Ihrer Schweisserei.
+
+Rückmeldung bis Ende Monat genügt.`,
+  signatur:"Marianne Frei\nLeiterin Einkauf, Medtec Solutions AG",
+  muster:{prio:"B", aktion:"selbst", warum:"Kostenlose Sichtbarkeit im Zielsegment – und gleichzeitig eine Entscheidung darüber, wie öffentlich man die Abhängigkeit vom grössten Kunden macht."}},
+
+/* --- Q6 ---------------------------------------------------------- */
+{ id:"maengelruege", periode:5, von:"Hanspeter Bösiger", adresse:"h.boesiger@boesiger-anlagen.ch", zeit:"07:33",
+  betreff:"Mängel an Lieferung vom Vorjahr – wir erwarten Ersatz",
+  koerper:`Sehr geehrte Frau Keller
+
+An den im vergangenen Jahr gelieferten Konsolen zeigen sich Korrosionsspuren. Wir haben das erst jetzt bemerkt, da die Anlage bis vor kurzem eingelagert war.
+
+Wir erwarten kostenlosen Ersatz sämtlicher 240 Teile.`,
+  signatur:"Hanspeter Bösiger\nBösiger Anlagenbau AG",
+  muster:{prio:"B", aktion:"selbst", warum:"Rechtlich und geschäftlich zwei verschiedene Fragen: Mängel sind nach Prüfung sofort zu rügen, und die Gewährleistungsfrist läuft ab Ablieferung. Was man darf, ist damit klar – was man tut, noch nicht."}},
+
+{ id:"pmiEinbruch", periode:5, von:"Swissmem Mitgliederinformation", adresse:"info@swissmem.ch", zeit:"Fr 08:15", widerspruch:"verkaufOptimismus",
+  betreff:"Konjunkturumfrage: Auftragseingang MEM −9 %, Prognose gesenkt",
+  koerper:`Die aktuelle Erhebung zeigt einen Rückgang des Auftragseingangs um 9 % gegenüber dem Vorjahresquartal. Besonders betroffen sind Zulieferer im Maschinenbau.
+
+Die Prognose für das kommende Jahr wurde von +1.8 % auf −0.5 % korrigiert.`,
+  signatur:"Swissmem, Mitgliederinformation",
+  muster:{prio:"B", aktion:"selbst", warum:"Steht im Widerspruch zur optimistischen Meldung des Verkaufs vom selben Morgen. Zwei Quellen, zwei Richtungen – der Abgleich mit dem eigenen Auftragsbestand entscheidet, welche stimmt."}},
+
+{ id:"verkaufOptimismus", periode:5, von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"08:04", widerspruch:"pmiEinbruch",
+  betreff:"Offertvolumen so hoch wie nie – ich bin zuversichtlich",
+  koerper:`Andrea, kurze gute Nachricht: Wir haben diesen Monat Offerten über CHF 3.1 Mio. draussen, so viel wie noch nie.
+
+Ich rechne mit einem starken Schlussquartal und würde die Kapazität eher ausbauen als bremsen.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"B", aktion:"selbst", warum:"Offertvolumen ist kein Auftragseingang. Hohe Offertzahlen bei fallendem Markt bedeuten oft nur, dass mehr Anbieter um dieselben Aufträge rechnen – die Abschlussquote ist die Zahl, die zählt."}},
+
+/* --- Q7 ---------------------------------------------------------- */
+{ id:"agbKollision", periode:6, von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:44",
+  betreff:"Bahntechnik beruft sich auf ihre Einkaufsbedingungen",
+  koerper:`Im Reklamationsfall beruft sich der Kunde auf seine Einkaufsbedingungen, die eine Gewährleistung von 24 Monaten und eine Haftung für Folgeschäden vorsehen.
+
+Wir haben unsere Verkaufsbedingungen auf jeder Auftragsbestätigung. Beide Parteien haben nie widersprochen, geliefert und bezahlt wurde trotzdem.
+
+Der Treuhänder sagt, in solchen Konstellationen sei oft strittig, welche Bedingungen überhaupt Vertragsbestandteil wurden.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"A", aktion:"selbst", warum:"Direkt entscheidungsrelevant für die laufende Reklamation und ein struktureller Mangel: Wenn nie geklärt wird, wessen Bedingungen gelten, entscheidet das im Streitfall jemand anderes."}},
+
+{ id:"strompreis", periode:6, von:"Energie Seeland AG", adresse:"kunden@energie-seeland.ch", zeit:"Do 09:20",
+  betreff:"Tarife für das kommende Jahr: Netznutzung +9 %",
+  koerper:`Sehr geehrte Kundin, sehr geehrter Kunde
+
+Die Tarife für das kommende Jahr stehen fest. Die Netznutzungskosten steigen um 9 %, der Energiepreis bleibt weitgehend stabil.
+
+Grossverbraucher haben bis Ende Monat die Möglichkeit, in den freien Markt zu wechseln.`,
+  signatur:"Energie Seeland AG",
+  muster:{prio:"B", aktion:"delegieren", warum:"Frist Ende Monat und relevante Kostenposition. Prüfung des Marktzugangs delegieren – aber die Frist im Auge behalten."}},
+
+{ id:"linkedin", periode:6, stoerung:true, von:"Netzwerk-Update", adresse:"noreply@business-netzwerk.com", zeit:"Mi 19:41",
+  betreff:"Ihr Profil wurde diese Woche 14 Mal aufgerufen",
+  koerper:`Sehen Sie, wer Ihr Profil besucht hat. Jetzt auf Premium upgraden und alle Besucher entdecken.`,
+  signatur:"Netzwerk-Update",
+  muster:{prio:"C", aktion:"ablegen", warum:"Automatische Benachrichtigung ohne jeden Handlungsbedarf."}},
+
+/* --- Q8 ---------------------------------------------------------- */
+{ id:"lohngleichheit", periode:7, von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"07:38",
+  betreff:"Lohngleichheitsanalyse – wir liegen knapp unter der Schwelle",
+  koerper:`Zur Information: Die gesetzliche Pflicht zur Lohngleichheitsanalyse gilt für Arbeitgeber ab 100 Mitarbeitenden. Wir liegen mit 128 darüber.
+
+Ob wir die Analyse bereits durchführen mussten, hängt vom Zeitpunkt ab. Ich möchte das sauber abklären lassen, bevor uns jemand danach fragt.
+
+Unabhängig davon: Die Differenz, die ich vor einem Jahr gemeldet habe, ist teilweise noch offen.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"B", aktion:"selbst", warum:"Kein akuter Druck, aber ein Thema, bei dem «wir haben es nicht gewusst» keine gute Antwort ist – vor allem nicht, wenn die Differenz vor einem Jahr intern gemeldet wurde."}},
+
+{ id:"marktaustritt", periode:7, von:"Daniel Roth", adresse:"d.roth@baertschi-metalltech.ch", zeit:"08:11",
+  betreff:"Steinmann hat einen Webshop – mit unseren Produktkategorien",
+  koerper:`Steinmann ist seit letzter Woche mit einem Onlinekonfigurator für Blechteile am Markt. Hochladen, Preis in 30 Sekunden, Lieferung in fünf Tagen.
+
+Bei Kleinserien und Einzelteilen sind sie damit schneller als unser gesamter Offertprozess. Das betrifft rund 12 % unseres Lohnfertigungsvolumens.`,
+  signatur:"Daniel Roth\nLeiter Verkauf und Marketing",
+  muster:{prio:"A", aktion:"selbst", warum:"Ein Wettbewerber verändert die Spielregeln in einem Segment, das ein Achtel des Volumens ausmacht. Strategisch dringend, auch wenn heute niemand danach fragt."}},
+
+{ id:"lehrstellenportal", periode:7, stoerung:true, von:"Lehrstellenportal Bern", adresse:"service@lehrstellen-be.ch", zeit:"Fr 11:05",
+  betreff:"Ihre Lehrstellen erscheinen ab sofort auch in der App",
+  koerper:`Gute Nachrichten: Ihre ausgeschriebenen Lehrstellen sind ab sofort auch in unserer neuen App sichtbar. Sie müssen nichts unternehmen.`,
+  signatur:"Lehrstellenportal Kanton Bern",
+  muster:{prio:"C", aktion:"ablegen", warum:"Reine Information, ausdrücklich ohne Handlungsbedarf."}}
+);
+
+/* Neu zeichnen, damit die Erweiterung sofort sichtbar ist */
+if(typeof zeichnen === "function") zeichnen();
+
+})();
+
+</script>
+
+<!-- ===== Firebase (compat-Builds: laufen als klassische Skripte) ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script>
+/* ===================================================================
+   CLOUD-SPEICHERUNG – Firebase (Projekt kmusim)
+   =================================================================== */
+(function(){
+"use strict";
+
+/* ---- 1) Konfiguration: aus der Firebase-Konsole einsetzen -------- */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyChkVJvFC7MGDgmR4DlBt-j_IwlBaMViOY",
+  authDomain:        "kmusim.firebaseapp.com",
+  projectId:         "kmusim",
+  storageBucket:     "kmusim.firebasestorage.app",
+  messagingSenderId: "587025112588",
+  appId:             "1:587025112588:web:635ccbd351b82a6dbb1829"
+};
+/* Diese Werte sind öffentlich – das ist bei Firebase so vorgesehen.
+   Der Schutz liegt vollständig in den Firestore-Regeln.            */
+
+const SAMMLUNG = "laeufe";
+const AUTOSAVE_SEKUNDEN = 20;
+
+/* ---- 2) Zustand des Moduls -------------------------------------- */
+let db = null, uid = null, bereit = false;
+let klasse = "", team = "", schmutzig = false, letzteSicherung = null;
+
+/* ---- 3) Oberfläche ---------------------------------------------- */
+const stil = document.createElement("style");
+stil.textContent = `
+#cloud{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 20px;
+  background:#11202C;color:#C7D3DC;border-bottom:1px solid #22323F;font-size:13px}
+#cloud input{padding:5px 9px;border:1px solid #334656;border-radius:3px;background:#0C1821;
+  color:#fff;font:inherit;font-size:13px;width:130px}
+#cloud input:focus{outline:2px solid #E8B400;outline-offset:-1px}
+#cloud button{background:none;border:1px solid #334656;border-radius:3px;color:#C7D3DC;
+  padding:5px 12px;font:inherit;font-size:13px;cursor:pointer}
+#cloud button:hover{background:#1B2C3A;color:#fff}
+#cloud button.haupt{border-color:#E8B400;color:#E8B400}
+#cloud button:disabled{opacity:.4;cursor:default}
+#cloud .status{margin-left:auto;font-variant-numeric:tabular-nums}
+#cloud .punkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:#5E6B76;margin-right:6px}
+#cloud .punkt.an{background:#3FA45F} #cloud .punkt.fehler{background:#C0392B}
+#cloud label{color:#7E909F}
+@media (max-width:640px){#cloud{padding:8px 12px}#cloud input{width:104px}}`;
+document.head.appendChild(stil);
+
+const leiste = document.createElement("div");
+leiste.id = "cloud";
+leiste.innerHTML = `
+  <label for="cKlasse">Klasse</label><input id="cKlasse" placeholder="LTKa26" maxlength="20">
+  <label for="cTeam">Team</label><input id="cTeam" placeholder="Gruppe 3" maxlength="30">
+  <button id="cSpeichern" class="haupt">Speichern</button>
+  <button id="cLaden">Laden</button>
+  <button id="cUebersicht">Klassenübersicht</button>
+  <span class="status"><span class="punkt" id="cPunkt"></span><span id="cStatus">nicht verbunden</span></span>`;
+document.querySelector("header.app").after(leiste);
+
+const $ = id => document.getElementById(id);
+function status(text, art){
+  $("cStatus").textContent = text;
+  $("cPunkt").className = "punkt"+(art?" "+art:"");
+}
+
+/* ---- 4) Verbindung ---------------------------------------------- */
+async function verbinden(){
+  if(typeof firebase === "undefined"){
+    status("lokal – Firebase nicht geladen"); return;
+  }
+  try{
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    try{ await db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* mehrere Tabs: egal */ }
+    const anmeldung = await firebase.auth().signInAnonymously();
+    uid = anmeldung.user.uid;
+    bereit = true;
+    status("verbunden", "an");
+  }catch(fehler){
+    console.error(fehler);
+    status("Verbindung fehlgeschlagen", "fehler");
+  }
+}
+
+function laufId(){
+  const sauber = t => t.trim().toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  return sauber(klasse)+"__"+sauber(team);
+}
+function felderLesen(){
+  klasse = $("cKlasse").value.trim();
+  team   = $("cTeam").value.trim();
+  return klasse && team;
+}
+
+/* ---- 5) Speichern ------------------------------------------------ */
+async function speichern(still){
+  if(!bereit){ if(!still) hinweis("Keine Verbindung zur Cloud."); return; }
+  if(!felderLesen()){ if(!still) hinweis("Bitte Klasse und Team ausfüllen."); return; }
+  const e = S.ergebnisse[S.ergebnisse.length-1] || null;
+  const daten = {
+    klasse, team, uid,
+    aktualisiert: firebase.firestore.FieldValue.serverTimestamp(),
+    periode: S.periode,
+    quartal: QUARTALE[S.periode],
+    beendet: !!S.beendet,
+    kennzahlen: {
+      umsatz:      e ? Math.round(e.umsatz) : 0,
+      ebit:        e ? Math.round(e.ebit) : 0,
+      ebitMarge:   e ? +(e.ebit/e.umsatz).toFixed(4) : 0,
+      kasse:       Math.round(S.kasse),
+      eigenkapital:Math.round(S.eigenkapital),
+      motivation:  +S.motivation.toFixed(3),
+      fluktuation: +S.fluktuation.toFixed(3),
+      termintreue: +S.termintreue.toFixed(3),
+      offeneStellen: offeneStellen()
+    },
+    eintraege: S.journal.length,
+    zustand: JSON.stringify(S)
+  };
+  try{
+    await db.collection(SAMMLUNG).doc(laufId()).set(daten, {merge:true});
+    letzteSicherung = new Date();
+    schmutzig = false;
+    status("gespeichert "+letzteSicherung.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}), "an");
+  }catch(fehler){
+    console.error(fehler);
+    status("Speichern fehlgeschlagen", "fehler");
+    if(!still) hinweis("Speichern fehlgeschlagen: "+fehler.message);
+  }
+}
+
+/* ---- 6) Laden ---------------------------------------------------- */
+async function laden(){
+  if(!bereit){ hinweis("Keine Verbindung zur Cloud."); return; }
+  if(!felderLesen()){ hinweis("Bitte Klasse und Team ausfüllen."); return; }
+  try{
+    const doc = await db.collection(SAMMLUNG).doc(laufId()).get();
+    if(!doc.exists){ hinweis("Für «"+klasse+" / "+team+"» ist noch kein Spielstand gespeichert."); return; }
+    const roh = doc.data().zustand;
+    if(!roh){ hinweis("Der Eintrag enthält keinen Spielstand."); return; }
+    S = JSON.parse(roh);
+    // Sternmarkierungen der Ereignismails wiederherstellen
+    if(S.sterne) EREIGNISSE.forEach(ev=>{ if(S.sterne[ev.id]!==undefined) ev.markiert = !!S.sterne[ev.id]; });
+    zeichnen();
+    window.scrollTo({top:0});
+    status("geladen: "+doc.data().quartal, "an");
+  }catch(fehler){
+    console.error(fehler);
+    hinweis("Laden fehlgeschlagen: "+fehler.message);
+  }
+}
+
+/* ---- 7) Klassenübersicht für die Kursleitung --------------------- */
+async function uebersicht(){
+  if(!bereit){ hinweis("Keine Verbindung zur Cloud."); return; }
+  if(!$("cKlasse").value.trim()){ hinweis("Bitte eine Klasse angeben."); return; }
+  klasse = $("cKlasse").value.trim();
+  try{
+    const treffer = await db.collection(SAMMLUNG).where("klasse","==",klasse).get();
+    const zeilen = [];
+    treffer.forEach(d=>zeilen.push(d.data()));
+    zeilen.sort((a,b)=>(b.kennzahlen?.eigenkapital||0)-(a.kennzahlen?.eigenkapital||0));
+    const p = (n,k=1)=>((n||0)*100).toFixed(k)+" %";
+    const f = n=>Math.round(n||0).toLocaleString("de-CH").replace(/\u202F|\u00A0/g,"'");
+    $("blatt").innerHTML = `
+      <h2>Klassenübersicht – ${klasse}</h2>
+      <p class="lead">${zeilen.length} Team${zeilen.length===1?"":"s"}. Die Rangfolge nach Eigenkapital ist bewusst nur eine von mehreren Sichten – im Debriefing zählen die Begründungen im Journal, nicht der Spielstand.</p>
+      ${zeilen.length ? `<table>
+        <tr><th>Team</th><th>Stand</th><th>EBIT-Marge</th><th>Eigenkapital</th><th>Flüssige Mittel</th><th>Motivation</th><th>Fluktuation</th><th>Offene Stellen</th><th>Journal</th></tr>
+        ${zeilen.map(z=>`<tr>
+          <td><b>${z.team}</b></td><td>${z.quartal||"–"}${z.beendet?" · beendet":""}</td>
+          <td>${p(z.kennzahlen?.ebitMarge)}</td><td>${f(z.kennzahlen?.eigenkapital)}</td>
+          <td>${f(z.kennzahlen?.kasse)}</td><td>${p(z.kennzahlen?.motivation,0)}</td>
+          <td>${p(z.kennzahlen?.fluktuation)}</td><td>${z.kennzahlen?.offeneStellen ?? "–"}</td>
+          <td>${z.eintraege||0}</td></tr>`).join("")}
+      </table>` : `<div class="befund">Für diese Klasse ist noch nichts gespeichert.</div>`}
+      <div class="knopfleiste">
+        <button class="knopf" id="uebZu">Schliessen</button>
+        <button class="knopf neben" id="uebExport">Als Text sichern</button>
+      </div>`;
+    $("auswertung").classList.add("offen");
+    $("uebZu").onclick = ()=>$("auswertung").classList.remove("offen");
+    $("uebExport").onclick = ()=>{
+      let t = "Klassenübersicht "+klasse+"\n\n";
+      zeilen.forEach(z=>{
+        t += z.team+" – "+(z.quartal||"")+"\n";
+        t += "  EBIT-Marge "+p(z.kennzahlen?.ebitMarge)+", Eigenkapital "+f(z.kennzahlen?.eigenkapital)+
+             ", Motivation "+p(z.kennzahlen?.motivation,0)+", Journaleinträge "+(z.eintraege||0)+"\n";
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([t],{type:"text/plain;charset=utf-8"}));
+      a.download = "klassenuebersicht-"+klasse+".txt"; a.click(); URL.revokeObjectURL(a.href);
+    };
+  }catch(fehler){
+    console.error(fehler);
+    hinweis("Übersicht fehlgeschlagen: "+fehler.message);
+  }
+}
+
+function hinweis(text){
+  $("blatt").innerHTML = `<h2>Cloud</h2><p class="lead">${text}</p>
+    <div class="knopfleiste"><button class="knopf" id="hinwZu">Schliessen</button></div>`;
+  $("auswertung").classList.add("offen");
+  $("hinwZu").onclick = ()=>$("auswertung").classList.remove("offen");
+}
+
+/* ---- 8) Automatisches Sichern ------------------------------------ */
+const zeichnenOriginal = zeichnen;
+zeichnen = function(){ schmutzig = true; return zeichnenOriginal.apply(this, arguments); };
+
+setInterval(()=>{ if(schmutzig && bereit && klasse && team) speichern(true); }, AUTOSAVE_SEKUNDEN*1000);
+window.addEventListener("beforeunload", ()=>{ if(schmutzig && bereit && klasse && team) speichern(true); });
+
+/* Beim Periodenabschluss sofort sichern */
+const abschlussOriginal = periodeAbschliessen;
+periodeAbschliessen = function(){
+  const ergebnis = abschlussOriginal.apply(this, arguments);
+  if(bereit && klasse && team) speichern(true);
+  return ergebnis;
+};
+
+/* ---- 9) Verdrahtung ---------------------------------------------- */
+$("cSpeichern").onclick = ()=>speichern(false);
+$("cLaden").onclick     = laden;
+$("cUebersicht").onclick= uebersicht;
+["cKlasse","cTeam"].forEach(id=>{
+  $(id).addEventListener("change", ()=>{
+    felderLesen();
+    if(klasse && team) status("bereit für "+klasse+" / "+team, bereit?"an":"");
+  });
+});
+
+verbinden();
+})();
+
 </script>
 </body>
 </html>
