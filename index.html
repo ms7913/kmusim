@@ -2098,19 +2098,33 @@ if(typeof zeichnen === "function") zeichnen();
 <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 <script>
 /* ===================================================================
-   CLOUD-SPEICHERUNG – Firebase (Projekt kmusim)
+   BÄRTSCHI METALLTECH – CLOUD-SPEICHERUNG (Testversion)
+   -------------------------------------------------------------------
+   Einbau in index.html, direkt vor dem schliessenden Body-Tag, in dieser Reihenfolge:
+
+     Script-Tag mit src=https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js">
+     Script-Tag mit src=https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js">
+     Script-Tag mit src=https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js">
+     Script-Block ... Inhalt dieser Datei ... 
+
+   Bewusst die compat-Builds: Sie laufen als klassische Scripts und
+   sehen damit die Variablen S und zeichnen() des Hauptscripts. Mit
+   den ES-Modulen ginge das nicht.
+
+   Ohne Netz oder ohne Konfiguration läuft die Anwendung normal
+   weiter, die Cloudleiste zeigt dann «lokal».
    =================================================================== */
 (function(){
 "use strict";
 
 /* ---- 1) Konfiguration: aus der Firebase-Konsole einsetzen -------- */
 const FIREBASE_CONFIG = {
-  apiKey:            "AIzaSyChkVJvFC7MGDgmR4DlBt-j_IwlBaMViOY",
-  authDomain:        "kmusim.firebaseapp.com",
-  projectId:         "kmusim",
-  storageBucket:     "kmusim.firebasestorage.app",
-  messagingSenderId: "587025112588",
-  appId:             "1:587025112588:web:635ccbd351b82a6dbb1829"
+  apiKey:            "HIER_EINSETZEN",
+  authDomain:        "kmu-simulator.firebaseapp.com",
+  projectId:         "kmu-simulator",
+  storageBucket:     "kmu-simulator.firebasestorage.app",
+  messagingSenderId: "HIER_EINSETZEN",
+  appId:             "HIER_EINSETZEN"
 };
 /* Diese Werte sind öffentlich – das ist bei Firebase so vorgesehen.
    Der Schutz liegt vollständig in den Firestore-Regeln.            */
@@ -2163,6 +2177,9 @@ function status(text, art){
 async function verbinden(){
   if(typeof firebase === "undefined"){
     status("lokal – Firebase nicht geladen"); return;
+  }
+  if(FIREBASE_CONFIG.apiKey === "HIER_EINSETZEN"){
+    status("lokal – Konfiguration fehlt"); return;
   }
   try{
     firebase.initializeApp(FIREBASE_CONFIG);
@@ -2328,11 +2345,13 @@ $("cUebersicht").onclick= uebersicht;
 
 verbinden();
 })();
+</script>
 
+<script>
 /* ===================================================================
    KMU-SIMULATOR – FREITEXT-ENTSCHEIDE MIT KI-AUSWERTUNG (Variante B)
    -------------------------------------------------------------------
-   Einbau: als weiteren <script>-Block vor </body>, NACH dem
+   Einbau: als weiteren Script-Block-Block vor dem schliessenden Body-Tag, NACH dem
    Hauptskript und nach der Inhaltserweiterung.
 
    Prinzip: Die teilnehmende Person schreibt ihr Vorgehen in eigenen
@@ -2346,7 +2365,7 @@ verbinden();
 (function(){
 "use strict";
 
-const WORKER_URL = "https://kmusim-ki.mschaedeli.workers.dev";
+const WORKER_URL = "https://kmusim-ki.DEIN-SUBDOMAIN.workers.dev";
 const KI_FAELLE  = ["rekrutierung", "sperrfrist"];
 const MINDESTZEICHEN = 180;
 
@@ -2568,11 +2587,13 @@ zeichnen = function(){
 datenschutzGate();
 zeichnen();
 })();
+</script>
 
+<script>
 /* ===================================================================
    KMU-SIMULATOR – MARKE, SPIELERANMELDUNG, PERSONENBILDER
    -------------------------------------------------------------------
-   Einbau: als weiteren <script>-Block vor </body>, NACH allen
+   Einbau: als weiteren Script-Block-Block vor dem schliessenden Body-Tag, NACH allen
    bisherigen Blöcken (Hauptskript, Erweiterung, Firebase, KI).
 
    Erwartete Dateien im Repository:
@@ -2585,6 +2606,15 @@ zeichnen();
    =================================================================== */
 (function(){
 "use strict";
+
+/* Erst starten, wenn das Dokument fertig geparst ist. Wird während des
+   Parsens in Kopf oder Body eingefügt, landen Elemente sonst an der
+   falschen Stelle. */
+function starteWennBereit(fn){
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, {once:true});
+  else fn();
+}
+starteWennBereit(function(){
 
 const LOGO = "Graphics/Brands/BaertschiMetalltechAG.jpeg";
 
@@ -2854,8 +2884,459 @@ journalExportieren = function(){
 
 wartenAufDatenschutz();
 zeichnen();
+});
 })();
+</script>
 
+<script>
+  /* ===================================================================
+   KMU-SIMULATOR – FIRMENPORTRAIT UND BELEGSCHAFT
+   -------------------------------------------------------------------
+   Einbau: als letzter Script-Block-Block vor dem schliessenden Body-Tag.
+
+   Bringt:
+   · neuen Reiter «Firma» mit Portrait, Geschichte, Finanz-, Personal-
+     und Produktdaten – jederzeit einsehbar
+   · namentlichen Stellenplan des ganzen Betriebs unter «Führung»,
+     aufklappbar, mit Eintrittsdatum und Dienstjahren
+   · Rollenklärung: keine erfundene Spielfigur mehr, die Rolle ist
+     die Funktion, der Name kommt aus der Anmeldung
+   · Korrektur: Logistik und Instandhaltung fehlten im Personalbestand
+     (116 statt 128 Mitarbeitende)
+   =================================================================== */
+(function(){
+"use strict";
+
+/* Erst starten, wenn das Dokument fertig geparst ist. Wird während des
+   Parsens in Kopf oder Body eingefügt, landen Elemente sonst an der
+   falschen Stelle. */
+function starteWennBereit(fn){
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", fn, {once:true});
+  else fn();
+}
+starteWennBereit(function(){
+
+const BEZUGSJAHR = 2025;   // entspricht dem Spieljahr 20X5
+
+/* ===================================================================
+   0) BESTANDSKORREKTUR
+   Der Stellenplan des Dossiers zählt 128 Personen. Im Modell waren
+   Logistik (8) und Instandhaltung (4) nicht erfasst.
+   =================================================================== */
+if(S.verwaltung === 33 && !S.ergebnisse.length) S.verwaltung = 45;
+
+/* ===================================================================
+   1) BEREICHE UND BELEGSCHAFT
+   =================================================================== */
+const BEREICHE = [
+  {id:"gl",             name:"Geschäftsleitung",                  soll:4,  quelle:"verwaltung"},
+  {id:"verkauf",        name:"Verkauf und technischer Innendienst", soll:12, quelle:"verwaltung"},
+  {id:"konstruktion",   name:"Konstruktion, AVOR, Engineering",   soll:10, quelle:"verwaltung"},
+  {id:"admin",          name:"Finanzen, Personal, Administration",soll:7,  quelle:"verwaltung"},
+  {id:"logistik",       name:"Logistik, Lager, Versand",          soll:8,  quelle:"verwaltung"},
+  {id:"instandhaltung", name:"Instandhaltung",                    soll:4,  quelle:"verwaltung"},
+  {id:"laser",          name:"Zuschnitt und Laser",               soll:20, quelle:"personal"},
+  {id:"abkanten",       name:"Abkanten und Umformen",             soll:16, quelle:"personal"},
+  {id:"schweissen",     name:"Schweisserei",                      soll:22, quelle:"personal"},
+  {id:"oberflaechen",   name:"Oberflächen und Pulverbeschichtung",soll:8,  quelle:"personal"},
+  {id:"montage",        name:"Montage und Baugruppen",            soll:15, quelle:"personal"},
+  {id:"lernende",       name:"Lernende",                          soll:6,  quelle:"lernende"}
+];
+
+/* Feste Figuren – alle, die in Nachrichten vorkommen */
+const FIGUREN = [
+  {b:"gl", v:"Thomas", n:"Bärtschi",  f:"Geschäftsführer, Miteigentümer", e:"1994-04", g:"m"},
+  {b:"gl", v:"Beat",   n:"Zwahlen",   f:"Leiter Produktion",              e:"2009-08", g:"m"},
+  {b:"gl", v:"Roland", n:"Stucki",    f:"Leiter Finanzen und Rechnungswesen", e:"2013-01", g:"m"},
+  {b:"gl", v:"Daniel", n:"Roth",      f:"Leiter Verkauf und Marketing",   e:"2016-03", g:"m"},
+  {b:"admin", v:"Nadia",  n:"Ruch",    f:"Personaladministration",        e:"2018-09", g:"w"},
+  {b:"admin", v:"Sina",   n:"Lehmann", f:"Assistentin der Geschäftsleitung", e:"2021-02", g:"w"},
+  {b:"konstruktion", v:"Lukas",    n:"Wenger",   f:"Leiter AVOR und Konstruktion", e:"2007-05", g:"m"},
+  {b:"konstruktion", v:"Hansruedi",n:"Amstutz",  f:"Konstrukteur, Pensionierung in 14 Monaten", e:"1989-08", g:"m"},
+  {b:"konstruktion", v:"Erwin",    n:"Bieri",    f:"Konstrukteur, Pensionierung in 20 Monaten", e:"1996-11", g:"m"},
+  {b:"instandhaltung", v:"Serge", n:"Aebi",     f:"Leiter Instandhaltung", e:"2004-02", g:"m"},
+  {b:"laser",  v:"Sascha", n:"Brügger", f:"Anlagenführer Laser",          e:"2018-06", g:"m"},
+  {b:"schweissen", v:"Marco", n:"Iseli", f:"Teamleiter Spätschicht",      e:"2014-03", g:"m"},
+  {b:"schweissen", v:"Ruedi", n:"Kunz",  f:"Schweisser, Bahnrahmen",      e:"2016-01", g:"m"},
+  {b:"montage", v:"Hans",  n:"Lüthi",   f:"Teamleiter Montage",           e:"2006-09", g:"m"},
+  {b:"oberflaechen", v:"Karin", n:"Zbinden", f:"Leiterin Oberflächen",    e:"2014-07", g:"w"},
+  {b:"verkauf", v:"Peter", n:"Vogt",    f:"Sachbearbeiter Innendienst",   e:"2019-02", g:"m"},
+  {b:"verkauf", v:"Sandra",n:"Kohler",  f:"Innendienst und Berufsbildnerin Polymechanik", e:"2012-08", g:"w"}
+];
+
+/* Namenspool für den Rest der Belegschaft */
+const VOR_M = "Andreas Bruno Christian Daniel Dominik Fabian Felix Georg Hansueli Ivan Jan Jonas Kurt Lars Manuel Markus Martin Matthias Michael Nico Olivier Pascal Patrick Peter Philipp Rafael Remo Renato Reto Roger Rolf Samuel Sandro Silvan Simon Stefan Sven Thomas Tobias Urs Walter Werner Yves".split(" ");
+const VOR_W = "Andrea Anna Barbara Bettina Carmen Chantal Claudia Corinne Daniela Doris Elena Erika Fabienne Franziska Gabriela Heidi Irene Jasmin Karin Katja Laura Lena Manuela Marianne Melanie Monika Nadja Nicole Petra Rahel Regula Ramona Sabrina Sarah Simone Sonja Stefanie Tanja Ursula Vera Yvonne".split(" ");
+const NACH = "Aebischer Ammann Baumann Berger Bhend Blaser Bösiger Brunner Bürki Christen Dubach Egger Fankhauser Flückiger Frei Furrer Gasser Gerber Graf Grossenbacher Gygax Habegger Hänni Hofer Hostettler Huber Jost Käser Kaufmann Kohler Krebs Lanz Lehmann Leuenberger Marti Meier Moser Müller Nyffeler Oberli Räber Rieder Rohrbach Rufener Schär Schmid Schneider Schürch Siegenthaler Sommer Stalder Steiner Stettler Studer Tschanz Wälchli Weber Wüthrich Zaugg Zimmermann Zurbrügg Zwygart".split(" ");
+
+const FUNKTIONEN = {
+  verkauf:["Sachbearbeiterin Innendienst","Sachbearbeiter Innendienst","Technischer Verkauf Aussendienst","Kalkulation und Offerten","Auftragsabwicklung"],
+  konstruktion:["Konstrukteurin","Konstrukteur","Arbeitsvorbereitung","Technische Zeichnerin","Programmierung CAM"],
+  admin:["Sachbearbeiterin Buchhaltung","Sachbearbeiter Buchhaltung","Lohnbuchhaltung","Empfang und Administration"],
+  logistik:["Lagermitarbeiterin","Lagermitarbeiter","Wareneingang","Versand und Verpackung","Staplerfahrer"],
+  instandhaltung:["Betriebsmechaniker","Betriebselektriker","Servicetechniker"],
+  laser:["Anlagenführerin Laser","Anlagenführer Laser","Zuschnitt","Entgraten und Nacharbeit","Maschinenbediener"],
+  abkanten:["Abkanterin","Abkanter","Umformtechnik","Maschinenbediener"],
+  schweissen:["Schweisserin","Schweisser","Schweissfachmann","Heftschweissen","Schweisser MAG"],
+  oberflaechen:["Pulverbeschichterin","Pulberbeschichter","Oberflächenvorbehandlung","Anlagenbedienung Beschichtung"],
+  montage:["Montageschlosserin","Montageschlosser","Baugruppenmontage","Endkontrolle und Montage"],
+  gl:["Mitglied der Geschäftsleitung"],
+  lernende:["Lernende Polymechanik","Lernender Polymechanik","Lernender Konstrukteur","Lernende Kauffrau","Lernender Kaufmann"]
+};
+
+/* Reproduzierbarer Zufall, damit die Belegschaft bei jedem Aufruf gleich ist */
+function zufall(saat){
+  let a = saat >>> 0;
+  return function(){
+    a += 0x6D2B79F5; let t = a;
+    t = Math.imul(t ^ (t>>>15), t | 1);
+    t ^= t + Math.imul(t ^ (t>>>7), t | 61);
+    return ((t ^ (t>>>14)) >>> 0) / 4294967296;
+  };
+}
+
+function belegschaftErzeugen(){
+  const r = zufall(19780611);
+  const vergeben = new Set();
+  const leute = [];
+  let lfd = 1;
+
+  FIGUREN.forEach(f=>{
+    vergeben.add(f.v+" "+f.n);
+    leute.push({id:"p"+(lfd++), bereich:f.b, vorname:f.v, name:f.n, funktion:f.f,
+                eintritt:f.e, geschlecht:f.g, fest:true});
+  });
+
+  BEREICHE.forEach(ber=>{
+    const vorhanden = leute.filter(p=>p.bereich===ber.id).length;
+    const anzahl = Math.max(0, (ber.id==="schweissen" ? 18 : ber.soll) - vorhanden);
+    for(let i=0;i<anzahl;i++){
+      let v, n, versuch = 0;
+      do{
+        const w = r() < (["admin","verkauf"].includes(ber.id) ? 0.62 : 0.14);
+        v = (w ? VOR_W : VOR_M)[Math.floor(r()*(w?VOR_W.length:VOR_M.length))];
+        n = NACH[Math.floor(r()*NACH.length)];
+      } while(vergeben.has(v+" "+n) && ++versuch < 40);
+      vergeben.add(v+" "+n);
+      const pool = FUNKTIONEN[ber.id] || ["Mitarbeitende"];
+      const jahr = ber.id==="lernende"
+        ? BEZUGSJAHR - Math.floor(r()*4)
+        : 1992 + Math.floor(Math.pow(r(), 0.55) * (BEZUGSJAHR-1992));
+      const monat = 1 + Math.floor(r()*12);
+      leute.push({
+        id:"p"+(lfd++), bereich:ber.id, vorname:v, name:n,
+        funktion:pool[Math.floor(r()*pool.length)],
+        eintritt: jahr+"-"+String(monat).padStart(2,"0"),
+        geschlecht: VOR_W.includes(v) ? "w" : "m", fest:false
+      });
+    }
+  });
+  return leute;
+}
+
+if(!S.belegschaft || !S.belegschaft.length) S.belegschaft = belegschaftErzeugen();
+
+/* --- Belegschaft an die Bestandszahlen des Modells angleichen ----- */
+function belegschaftAngleichen(){
+  const r = zufall(4711 + S.periode*97);
+  const jetzt = BEZUGSJAHR + Math.floor(S.periode/4);
+  const monat = String(1 + (S.periode%4)*3).padStart(2,"0");
+
+  ["laser","abkanten","schweissen","oberflaechen","montage"].forEach(b=>{
+    const soll = S.personal[b];
+    let ist = S.belegschaft.filter(p=>p.bereich===b);
+    while(ist.length > soll){
+      // Es gehen zuerst die, die zuletzt gekommen sind – feste Figuren bleiben
+      const gehbar = ist.filter(p=>!p.fest).sort((a,c)=>c.eintritt.localeCompare(a.eintritt));
+      const weg = gehbar[0] || ist[ist.length-1];
+      S.belegschaft = S.belegschaft.filter(p=>p.id !== weg.id);
+      ist = S.belegschaft.filter(p=>p.bereich===b);
+    }
+    while(ist.length < soll){
+      const w = r() < 0.14;
+      const v = (w?VOR_W:VOR_M)[Math.floor(r()*(w?VOR_W.length:VOR_M.length))];
+      const n = NACH[Math.floor(r()*NACH.length)];
+      const pool = FUNKTIONEN[b];
+      S.belegschaft.push({id:"p"+Date.now()+Math.floor(r()*1000), bereich:b, vorname:v, name:n,
+        funktion:pool[Math.floor(r()*pool.length)], eintritt:jetzt+"-"+monat,
+        geschlecht:w?"w":"m", fest:false, neu:true});
+      ist = S.belegschaft.filter(p=>p.bereich===b);
+    }
+  });
+}
+
+function dienstjahre(eintritt){
+  const [j,m] = eintritt.split("-").map(Number);
+  const jetztJ = BEZUGSJAHR + Math.floor(S.periode/4);
+  const jetztM = 1 + (S.periode%4)*3;
+  return Math.max(0, jetztJ - j - (jetztM < m ? 1 : 0));
+}
+const MONATE = ["","Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+function eintrittText(e){ const [j,m]=e.split("-").map(Number); return MONATE[m]+" "+j; }
+
+/* ===================================================================
+   2) REITER «FIRMA»
+   =================================================================== */
+const stil = document.createElement("style");
+stil.textContent = `
+details.abschnitt{background:var(--flaeche);border:1px solid var(--linie);margin-bottom:12px}
+details.abschnitt > summary{padding:12px 16px;font-weight:600;font-size:15px;cursor:pointer;
+  list-style:none;display:flex;align-items:center;gap:9px}
+details.abschnitt > summary::-webkit-details-marker{display:none}
+details.abschnitt > summary::before{content:"▸";color:var(--stahl);font-size:13px;transition:none}
+details.abschnitt[open] > summary::before{content:"▾"}
+details.abschnitt[open] > summary{border-bottom:1px solid var(--linie);background:#F5F7F4}
+details.abschnitt .inhalt{padding:16px}
+details.abschnitt .inhalt > :first-child{margin-top:0}
+details.abschnitt .inhalt p{max-width:70ch;font-size:14.5px}
+.zweispaltig{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.kennwerte{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--linie);
+  border:1px solid var(--linie);margin-bottom:18px}
+.kennwerte div{background:var(--flaeche);padding:11px 14px}
+.kennwerte .t{font-size:12px;color:var(--stahl)}
+.kennwerte .w{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+table.leute td{padding:6px 12px;font-size:13.5px}
+table.leute .fkt{color:var(--stahl);font-size:12.5px}
+table.leute tr.neuling td:first-child::after{content:" neu";font-size:11px;color:var(--gruen);font-weight:600}
+.bereichskopf{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.bereichskopf .zahl{font-variant-numeric:tabular-nums;color:var(--stahl);font-weight:400;font-size:13.5px}
+.bereichskopf .luecke{color:var(--rot);font-weight:600;font-size:13px}`;
+document.head.appendChild(stil);
+
+REITER.firma = function(){
+  const e = letzte();
+  return `<h2>Bärtschi Metalltech AG</h2>
+  <p class="hinweis">Alles, was Sie über den Betrieb wissen müssen – jederzeit hier nachschlagbar. Die Zahlen des Geschäftsjahrs 20X4 sind der Stand, den Sie übernommen haben.</p>
+
+  <div class="kennwerte">
+    <div><div class="t">Nettoumsatz 20X4</div><div class="w">27.5 Mio.</div></div>
+    <div><div class="t">EBIT-Marge 20X4</div><div class="w">3.3 %</div></div>
+    <div><div class="t">Mitarbeitende</div><div class="w">${gesamtPersonal()}</div></div>
+    <div><div class="t">Eigenkapitalquote</div><div class="w">${pct(S.eigenkapital/bilanzsumme())}</div></div>
+    <div><div class="t">Gegründet</div><div class="w">1978</div></div>
+  </div>
+
+  <details class="abschnitt" open><summary>Das Unternehmen</summary><div class="inhalt">
+    <p>Die Bärtschi Metalltech AG in Lyss BE verarbeitet Blech und Metall: Sie schneidet, kantet, schweisst, beschichtet und montiert – für andere Unternehmen, nach deren Zeichnungen, und in kleinem Umfang auch für den eigenen Katalog.</p>
+    <p>Gegründet 1978 von Ernst Bärtschi als Schlosserei mit vier Mitarbeitenden. Der Durchbruch kam Mitte der Neunzigerjahre mit dem Einstieg in die Medizinaltechnik: Ein Solothurner Hersteller suchte einen Zulieferer für Gerätegehäuse, und diese Beziehung besteht bis heute. In den Zweitausenderjahren kam die Bahntechnik dazu, 2012 der erste Faserlaser, 2019 die eigene Produktlinie.</p>
+    <p>Heute führt Thomas Bärtschi das Unternehmen in dritter Generation. Die Familie hält 70 Prozent der Aktien, ehemalige Kadermitglieder die übrigen 30. Die Betriebsliegenschaft gehört dem Unternehmen.</p>
+    <p>Der Betrieb gilt in der Region als solide und anständig. Elf der heutigen Facharbeiter haben ihre Lehre im Haus gemacht. Was fehlt, ist nicht Substanz, sondern Schärfe: Die Marge liegt unter dem Branchenmittel, die Termintreue unter dem eigenen Anspruch, und der grösste Kunde weiss, wie gross er ist.</p>
+  </div></details>
+
+  <details class="abschnitt"><summary>Was verkauft wird</summary><div class="inhalt">
+    <div class="zweispaltig">
+      <div>
+        <h3 style="margin-top:0">Lohnfertigung · 55 % des Umsatzes</h3>
+        <p>Laserschneiden, Abkanten und Schweissen nach Kundenzeichnung. Losgrössen von 20 bis 2000 Stück. Der Kunde bringt die Konstruktion mit, Bärtschi liefert das Teil. Deckungsbeitrag 53 Prozent, aber härtester Preisdruck – hier wird über Rappen pro Teil verhandelt.</p>
+        <h3>Baugruppen und Systeme · 30 %</h3>
+        <p>Gehäuse, Schaltschränke, vormontierte Einheiten inklusive Zukaufteilen und Endkontrolle. Mehr Engineering, mehr Verantwortung, mehr Bindung. Deckungsbeitrag 58 Prozent. Das Wachstumsfeld.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0">BM-Werkstattsystem · 15 %</h3>
+        <p>Die eigene Produktlinie seit 2019: Werkstattmobiliar, Schrankwände, Lagertechnik. Katalogware mit Konfigurationsmöglichkeiten. Deckungsbeitrag 76 Prozent – mit Abstand das beste Geschäft, und mit Abstand das kleinste. Verkauft wird es fast nur an Kunden, die ohnehin da sind.</p>
+        <h3>Kundenstruktur</h3>
+        <p>Medizinaltechnik 26 %, Maschinenbau 24 %, Bahn und Verkehr 21 %, Bau und Gebäudetechnik 18 %, Übrige 11 %. Exportanteil 22 %, überwiegend Süddeutschland, fakturiert in Euro.</p>
+        <p><strong>Klumpenrisiko:</strong> Der grösste Kunde steht für 18 %, die fünf grössten zusammen für 44 %.</p>
+      </div>
+    </div>
+  </div></details>
+
+  <details class="abschnitt"><summary>Finanzen</summary><div class="inhalt">
+    <div class="tabellen">
+      <table class="d"><caption>Erfolgsrechnung 20X4</caption>
+        <tr><td>Nettoerlös</td><td class="z">27'500'000</td><td class="z">100 %</td></tr>
+        <tr><td>Materialaufwand</td><td class="z">−11'261'000</td><td class="z">41.0 %</td></tr>
+        <tr class="zwischen"><td>Bruttogewinn</td><td class="z">16'239'000</td><td class="z">59.0 %</td></tr>
+        <tr><td>Personalaufwand</td><td class="z">−11'000'000</td><td class="z">40.0 %</td></tr>
+        <tr><td>Übriger Betriebsaufwand</td><td class="z">−3'150'000</td><td class="z">11.5 %</td></tr>
+        <tr class="zwischen"><td>EBITDA</td><td class="z">2'089'000</td><td class="z">7.6 %</td></tr>
+        <tr><td>Abschreibungen</td><td class="z">−1'180'000</td><td class="z"></td></tr>
+        <tr class="zwischen"><td>EBIT</td><td class="z">909'000</td><td class="z">3.3 %</td></tr>
+        <tr><td>Finanzergebnis und Übriges</td><td class="z">−80'000</td><td class="z"></td></tr>
+        <tr><td>Steuern</td><td class="z">−129'000</td><td class="z"></td></tr>
+        <tr class="summe"><td>Jahresgewinn</td><td class="z">700'000</td><td class="z">2.5 %</td></tr>
+      </table>
+      <table class="d"><caption>Bilanz per 31.12.20X4</caption>
+        <tr><td>Flüssige Mittel</td><td class="z">1'250'000</td></tr>
+        <tr><td>Forderungen aus L+L</td><td class="z">4'100'000</td></tr>
+        <tr><td>Vorräte</td><td class="z">4'350'000</td></tr>
+        <tr><td>Anlagevermögen</td><td class="z">13'500'000</td></tr>
+        <tr class="summe"><td>Bilanzsumme</td><td class="z">23'600'000</td></tr>
+        <tr><td>Kurzfristiges Fremdkapital</td><td class="z">4'800'000</td></tr>
+        <tr><td>Hypothek und Darlehen</td><td class="z">6'000'000</td></tr>
+        <tr><td>Eigenkapital</td><td class="z">12'400'000</td></tr>
+        <tr class="summe"><td>Eigenkapitalquote</td><td class="z">52.5 %</td></tr>
+      </table>
+    </div>
+    <h3>Entwicklung der letzten drei Jahre</h3>
+    <table class="d">
+      <tr><th></th><th class="z">20X2</th><th class="z">20X3</th><th class="z">20X4</th></tr>
+      <tr><td>Nettoumsatz</td><td class="z">26'200'000</td><td class="z">25'400'000</td><td class="z">27'500'000</td></tr>
+      <tr><td>EBIT-Marge</td><td class="z">6.8 %</td><td class="z">1.7 %</td><td class="z">3.3 %</td></tr>
+      <tr><td>Liquiditätsgrad 2</td><td class="z">160 %</td><td class="z">118 %</td><td class="z">115 %</td></tr>
+      <tr><td>Debitorenfrist</td><td class="z">48 Tage</td><td class="z">52 Tage</td><td class="z">54 Tage</td></tr>
+      <tr><td>Mitarbeitende</td><td class="z">119</td><td class="z">123</td><td class="z">128</td></tr>
+    </table>
+    <p class="hinweis" style="margin-top:14px">20X2 war ein gutes Jahr. 20X3 brach der Bauzulieferbereich ein, gleichzeitig stiegen die Energiekosten und die Abschreibungen auf den neuen Laser. 20X4 erholte sich der Umsatz – die Struktur nicht: Materialquote und Debitorenfrist steigen seit drei Jahren.</p>
+  </div></details>
+
+  <details class="abschnitt"><summary>Produktion und Kapazität</summary><div class="inhalt">
+    <div class="tabellen">
+      <table class="d"><caption>Maschinenpark</caption>
+        <tr><td>Faserlaser 6 kW</td><td class="z">Baujahr 2021</td></tr>
+        <tr><td>Faserlaser 4 kW</td><td class="z">Baujahr 2012</td></tr>
+        <tr><td>Abkantpressen</td><td class="z">3</td></tr>
+        <tr><td>Schweissplätze</td><td class="z">12</td></tr>
+        <tr><td>Pulverbeschichtungsanlage</td><td class="z">1</td></tr>
+        <tr><td>Montagelinien</td><td class="z">2</td></tr>
+      </table>
+      <table class="d"><caption>Leistungsdaten</caption>
+        <tr><td>Kapazität pro Quartal</td><td class="z">${fmt(kapazitaet())} h</td></tr>
+        <tr><td>Auslastung</td><td class="z">${pct(S.auslastung,0)}</td></tr>
+        <tr><td>Termintreue (Ziel 96 %)</td><td class="z">${pct(S.termintreue,0)}</td></tr>
+        <tr><td>Ausschuss und Nacharbeit</td><td class="z">${pct(S.ausschussEffektiv||S.ausschuss)}</td></tr>
+        <tr><td>Durchlaufzeit</td><td class="z">12 Arbeitstage</td></tr>
+        <tr><td>Auftragsbestand</td><td class="z">6.5 Wochen</td></tr>
+      </table>
+    </div>
+    <p><strong>Der Engpass ist die Schweisserei.</strong> Sie stellt 23.4 Prozent aller Fertigungsstunden, und was dort nicht durchläuft, begrenzt den Durchsatz aller nachgelagerten Bereiche – unabhängig davon, wie viele Leute am Laser oder in der Montage stehen.</p>
+    <h3>Kostensätze der Kostenstellen</h3>
+    <table class="d">
+      <tr><th>Kostenstelle</th><th class="z">Kostensatz</th><th class="z">Verkaufssatz</th></tr>
+      <tr><td>Konstruktion und AVOR</td><td class="z">119</td><td class="z">148</td></tr>
+      <tr><td>Zuschnitt und Laser</td><td class="z">102</td><td class="z">127</td></tr>
+      <tr><td>Abkanten</td><td class="z">86</td><td class="z">107</td></tr>
+      <tr><td>Schweissen</td><td class="z">82</td><td class="z">102</td></tr>
+      <tr><td>Oberflächen</td><td class="z">116</td><td class="z">145</td></tr>
+      <tr><td>Montage</td><td class="z">81</td><td class="z">101</td></tr>
+    </table>
+    <p class="hinweis">Verkaufssatz = Kostensatz × 1.155 für Verwaltungs- und Vertriebsgemeinkosten × 1.08 Gewinnzuschlag.</p>
+  </div></details>
+
+  <details class="abschnitt"><summary>Personal</summary><div class="inhalt">
+    <div class="tabellen">
+      <table class="d"><caption>Eckdaten</caption>
+        <tr><td>Mitarbeitende</td><td class="z">${gesamtPersonal()}</td></tr>
+        <tr><td>davon Lernende</td><td class="z">${S.lernende}</td></tr>
+        <tr><td>Durchschnittliche Dienstjahre</td><td class="z">${(S.belegschaft.reduce((s,p)=>s+dienstjahre(p.eintritt),0)/S.belegschaft.length).toFixed(1)}</td></tr>
+        <tr><td>Frauenanteil</td><td class="z">${pct(S.belegschaft.filter(p=>p.geschlecht==="w").length/S.belegschaft.length,0)}</td></tr>
+        <tr><td>Fluktuation</td><td class="z">${pct(S.fluktuation)}</td></tr>
+        <tr><td>Absenzquote</td><td class="z">${pct(S.absenzquote)}</td></tr>
+      </table>
+      <table class="d"><caption>Arbeitsbedingungen</caption>
+        <tr><td>Wochenarbeitszeit</td><td class="z">42 Stunden</td></tr>
+        <tr><td>Ferien</td><td class="z">5 Wochen, ab 50 sechs</td></tr>
+        <tr><td>Lohnsumme pro Jahr</td><td class="z">9'170'000</td></tr>
+        <tr><td>Arbeitgeber-Nebenkosten</td><td class="z">rund 18 %</td></tr>
+        <tr><td>Weiterbildungsbudget</td><td class="z">${fmt(S.weiterbildungQuartal*4)}</td></tr>
+        <tr><td>Überzeitsaldo</td><td class="z">${fmt(S.ueberzeitSaldo)} h</td></tr>
+      </table>
+    </div>
+    <p>Den namentlichen Stellenplan finden Sie unter <strong>Führung</strong>.</p>
+  </div></details>
+
+  <details class="abschnitt"><summary>Markt und Wettbewerb</summary><div class="inhalt">
+    <table class="d">
+      <tr><th>Wettbewerber</th><th>Profil</th><th class="z">Preisniveau</th></tr>
+      <tr><td><b>Steinmann Blechtech AG</b><br><span style="color:var(--stahl)">Aargau, 240 Mitarbeitende</span></td>
+          <td>Hochautomatisiert, 24-Stunden-Laserbetrieb. Stark bei Grossserien, träge bei Sonderwünschen. Wirbt aktiv Fachkräfte ab.</td><td class="z">−10 %</td></tr>
+      <tr><td><b>PolMetal Sp. z o.o.</b><br><span style="color:var(--stahl)">Polen, Handelsvertretung Schweiz</span></td>
+          <td>Import-Lohnfertigung. Deutlich günstiger, drei Wochen längere Lieferfrist, schwankende Qualität. Reagiert stark auf den Eurokurs.</td><td class="z">−24 %</td></tr>
+      <tr><td><b>Metallbau Grossenbacher GmbH</b><br><span style="color:var(--stahl)">Seeland, 35 Mitarbeitende</span></td>
+          <td>Sehr flexibel, teuer, nimmt Kleinserien und Eilaufträge. Greift zuverlässig dann Kunden ab, wenn es bei Bärtschi eng wird.</td><td class="z">+12 %</td></tr>
+    </table>
+  </div></details>`;
+};
+
+/* Reiter einhängen, direkt nach «Lage» */
+if(!REITERNAMEN.some(r=>r[0]==="firma")){
+  REITERNAMEN.splice(1, 0, ["firma","Firma"]);
+}
+
+/* ===================================================================
+   3) STELLENPLAN UNTER «FÜHRUNG»
+   =================================================================== */
+function stellenplanHtml(){
+  const gruppen = BEREICHE.map(ber=>{
+    const leute = S.belegschaft.filter(p=>p.bereich===ber.id)
+      .sort((a,b)=>a.eintritt.localeCompare(b.eintritt));
+    const soll = ber.quelle==="personal" ? SOLL[ber.id] : ber.soll;
+    const luecke = soll - leute.length;
+    return `<details class="abschnitt"><summary>
+        <span class="bereichskopf"><span>${ber.name}</span>
+        <span class="zahl">${leute.length}${soll!==leute.length?" von "+soll:""}</span>
+        ${luecke>0?`<span class="luecke">${luecke} offen</span>`:""}</span></summary>
+      <div class="inhalt" style="padding:0">
+        <table class="d leute">
+          ${leute.map(p=>`<tr class="${p.neu?"neuling":""}">
+            <td><b>${p.vorname} ${p.name}</b><br><span class="fkt">${p.funktion}</span></td>
+            <td class="z" style="white-space:nowrap">seit ${eintrittText(p.eintritt)}<br>
+              <span class="fkt">${dienstjahre(p.eintritt)} ${dienstjahre(p.eintritt)===1?"Jahr":"Jahre"}</span></td>
+          </tr>`).join("")}
+        </table></div></details>`;
+  }).join("");
+
+  const langjaehrig = S.belegschaft.filter(p=>dienstjahre(p.eintritt)>=20).length;
+  return `<h3>Stellenplan des Betriebs</h3>
+    <p class="hinweis">${S.belegschaft.length} Mitarbeitende, davon ${langjaehrig} seit zwanzig Jahren oder länger im Haus. Bereich anklicken für Namen, Funktion und Eintritt. Wer den Betrieb verlässt, verschwindet aus der Liste – wer neu dazukommt, erscheint mit dem aktuellen Quartal als Eintritt.</p>
+    ${gruppen}`;
+}
+
+const fuehrungOriginal = REITER.fuehrung;
+REITER.fuehrung = function(){
+  return fuehrungOriginal.apply(this, arguments) + stellenplanHtml();
+};
+
+/* ===================================================================
+   4) ROLLENKLÄRUNG: keine erfundene Spielfigur mehr
+   =================================================================== */
+const lageOriginal = REITER.lage;
+REITER.lage = function(){
+  let h = lageOriginal.apply(this, arguments);
+  const alt = /<p class="hinweis">Sie sind Andrea Keller.*?<\/p>/s;
+  const neu = `<p class="hinweis"><strong>Ihre Rolle:</strong> Leitung der Auftragsabwicklung und Sitz in der vierköpfigen Geschäftsleitung. Sie verantworten die Schnittstelle zwischen Verkauf, Produktion und Kunden – und entscheiden in der Geschäftsleitung über alles mit, was den Betrieb als Ganzes betrifft.<br><br>
+  <strong>Ausgangslage:</strong> Es ist Montag, 8 Uhr, Beginn des ersten Quartals. Sie waren zwei Wochen abwesend, die Produktionssitzung beginnt um halb neun. Der Betrieb schloss das letzte Jahr mit CHF 27.5 Mio. Umsatz und 3.3 % EBIT-Marge – gesund, aber nicht in Ordnung: vier offene Schweisserstellen im Engpassbereich, 4'850 Stunden Überzeit, 11.2 % Fluktuation, eine Debitorenfrist von 54 Tagen.<br><br>
+  <strong>So läuft ein Quartal:</strong> zuerst der <em>Postkorb</em> – dort trifft alles ein, auch die Entscheide. Dann die <em>Entscheide</em> mit Begründung. Dann Periode abschliessen. Unter <em>Firma</em> finden Sie jederzeit alles über den Betrieb.</p>`;
+  h = alt.test(h) ? h.replace(alt, neu) : h;
+  return h;
+};
+
+/* Postfach: Konto und Anrede an die spielende Person binden */
+const postkorbOriginal = REITER.postkorb;
+REITER.postkorb = function(){
+  const s = S.spieler;
+  let h = postkorbOriginal.apply(this, arguments);
+  if(s){
+    h = h.replace("a.keller@baertschi-metalltech.ch",
+      s.vorname.toLowerCase().charAt(0)+"."+s.name.toLowerCase().replace(/[^a-zäöü]/g,"")+"@baertschi-metalltech.ch");
+    h = h.replace("<small>Bärtschi Metalltech AG</small>",
+      "<small>"+s.vorname+" "+s.name+" · Auftragsabwicklung</small>");
+  }
+  return h;
+};
+
+const mailOeffnenVorher = mailOeffnen;
+mailOeffnen = function(id){
+  const ergebnis = mailOeffnenVorher.apply(this, arguments);
+  const an = document.querySelector("#postfach .kopfblock .an");
+  if(an && S.spieler) an.textContent = an.textContent.replace(/Andrea Keller/g, S.spieler.vorname+" "+S.spieler.name);
+  return ergebnis;
+};
+
+/* ===================================================================
+   5) Belegschaft nach jedem Periodenabschluss nachführen
+   =================================================================== */
+const abschlussVorher = periodeAbschliessen;
+periodeAbschliessen = function(){
+  const ergebnis = abschlussVorher.apply(this, arguments);
+  belegschaftAngleichen();
+  return ergebnis;
+};
+
+belegschaftAngleichen();
+zeichnen();
+});
+})();
 </script>
 </body>
 </html>
