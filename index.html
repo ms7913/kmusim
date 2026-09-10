@@ -1,0 +1,1668 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bärtschi Metalltech AG – Führungssimulation</title>
+<style>
+:root{
+  --papier:#E9EBE7; --flaeche:#FFFFFF; --tinte:#16202B; --stahl:#5E6B76;
+  --linie:#C6CBC5; --signal:#E8B400; --blau:#1F5C8B; --rot:#A32C24; --gruen:#2E6B4F;
+  /* Postfach-Chrome */
+  --chrome:#f0f0f4; --chrome-dunkel:#e3e3e8; --rand:#cfcfd8; --rand-hell:#e6e6ec;
+  --mtext:#15141a; --mgrau:#5b5b66; --auswahl:#0a84ff; --auswahl-hell:#dceafd; --mhover:#f2f5fb;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Ubuntu,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--papier);color:var(--tinte);font-family:var(--ui);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ================= Kopf ================= */
+header.app{background:var(--tinte);color:#fff;padding:14px 20px;display:flex;flex-wrap:wrap;gap:20px;align-items:baseline;position:sticky;top:0;z-index:30}
+header.app h1{font-size:17px;font-weight:600;margin:0;letter-spacing:-0.01em}
+header.app .ort{color:#93A2AE;font-size:13px}
+header.app .periode{margin-left:auto;font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em}
+header.app .periode small{font-size:12px;font-weight:400;color:#93A2AE;display:block;text-align:right}
+
+#warnbalken{display:none;align-items:center;gap:14px;padding:10px 20px;background:repeating-linear-gradient(135deg,var(--signal) 0 18px,#1a1a1a 18px 36px);color:#fff;font-weight:600;font-size:14px}
+#warnbalken span{background:#1a1a1a;padding:4px 12px}
+#warnbalken.sichtbar{display:flex}
+
+#kennzahlen{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:1px;background:var(--linie);border-bottom:1px solid var(--linie)}
+.kz{background:var(--flaeche);padding:11px 15px;cursor:pointer;text-align:left;border:0;font:inherit;color:inherit;width:100%}
+.kz:hover{background:#F5F7F4}
+.kz:focus-visible{outline:none;box-shadow:inset 0 0 0 2px var(--blau)}
+.kz .titel{font-size:12px;color:var(--stahl)}
+.kz .wert{font-size:21px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;margin-top:2px}
+.kz .wert.gut{color:var(--gruen)} .kz .wert.schlecht{color:var(--rot)}
+.kz .formel{display:none;font-size:12px;color:var(--stahl);margin-top:6px;border-top:1px dashed var(--linie);padding-top:6px}
+.kz.offen .formel{display:block}
+
+nav.app{display:flex;background:var(--flaeche);border-bottom:1px solid var(--linie);overflow-x:auto;position:sticky;top:0;z-index:20}
+nav.app button{background:none;border:0;border-bottom:3px solid transparent;padding:11px 17px;font:inherit;font-size:14px;color:var(--stahl);cursor:pointer;white-space:nowrap;position:relative}
+nav.app button:hover{color:var(--tinte)}
+nav.app button.aktiv{color:var(--tinte);font-weight:600;border-bottom-color:var(--signal)}
+nav.app button .punkt{display:inline-block;min-width:17px;height:17px;line-height:17px;border-radius:9px;background:var(--rot);color:#fff;font-size:11px;font-weight:700;text-align:center;margin-left:6px;padding:0 4px}
+
+main{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+main.breit{max-width:none;padding:0}
+h2{font-size:19px;font-weight:600;margin:0 0 14px;letter-spacing:-0.01em}
+h3{font-size:15px;font-weight:600;margin:26px 0 8px}
+p.hinweis{color:var(--stahl);font-size:14px;max-width:66ch;margin:0 0 18px}
+
+table.d{width:100%;border-collapse:collapse;background:var(--flaeche);font-variant-numeric:tabular-nums}
+table.d th,table.d td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--linie);font-size:14px}
+table.d td.z,table.d th.z{text-align:right}
+table.d tr.summe td{font-weight:600;border-top:2px solid var(--tinte);border-bottom:0}
+table.d tr.zwischen td{font-weight:600;background:#F5F7F4}
+table.d tr.knapp td{color:var(--rot)}
+table.d caption{text-align:left;font-weight:600;padding:10px 12px;background:var(--tinte);color:#fff;font-size:14px}
+.tabellen{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:20px}
+
+.karte{background:var(--flaeche);border:1px solid var(--linie);margin-bottom:20px}
+.karte .kartenkopf{background:#F5F7F4;padding:12px 16px;border-bottom:1px solid var(--linie)}
+.karte .kartenkopf.fuehrung{background:#F3F0E4;border-bottom-color:var(--signal)}
+.karte .titel{font-weight:600;font-size:15px}
+.karte .hkb{font-size:12px;color:var(--stahl);margin-top:3px}
+.karte .rumpf{padding:16px}
+.karte .lage{margin:0 0 14px;max-width:68ch}
+blockquote.zitat{margin:0 0 14px;padding:12px 16px;background:#F5F7F4;border-left:3px solid var(--stahl);max-width:66ch}
+blockquote.zitat cite{display:block;margin-top:6px;font-size:13px;font-style:normal;color:var(--stahl)}
+.optionen{display:grid;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--linie);padding:11px 13px;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--stahl)}
+.opt input{margin-top:3px}
+.opt.gewaehlt{border-color:var(--blau);background:#F1F6FA}
+.opt .folge{display:block;font-size:13px;color:var(--stahl);margin-top:2px}
+.begruendung{margin-top:14px}
+.begruendung label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}
+.begruendung textarea{width:100%;min-height:76px;padding:9px 11px;border:1px solid var(--linie);font:inherit;font-size:14px;resize:vertical;background:#fff;color:var(--tinte)}
+.begruendung textarea:focus{outline:2px solid var(--blau);outline-offset:-1px;border-color:var(--blau)}
+.zaehler{font-size:12px;color:var(--stahl);margin-top:4px}
+.zaehler.fehlt{color:var(--rot)}
+.vermerk{background:#F1F6FA;border-left:3px solid var(--blau);padding:9px 13px;font-size:13px;margin:0 0 14px}
+
+.regler{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.regler .feld{background:var(--flaeche);border:1px solid var(--linie);padding:14px 16px}
+.regler label{display:block;font-weight:600;font-size:14px;margin-bottom:4px}
+.regler .erklaerung{font-size:13px;color:var(--stahl);margin-bottom:10px}
+.regler input[type=range]{width:100%}
+.regler select,.regler input[type=number]{width:100%;padding:7px 9px;border:1px solid var(--linie);font:inherit;font-size:14px;background:#fff;color:var(--tinte)}
+.regler .anzeige{font-weight:600;font-variant-numeric:tabular-nums}
+.regler .kosten{font-size:13px;color:var(--stahl);margin-top:6px}
+.schalter{display:flex;gap:9px;align-items:flex-start;font-size:14px;font-weight:400}
+.balken{height:8px;background:var(--linie);margin-top:8px;position:relative}
+.balken i{position:absolute;left:0;top:0;bottom:0;background:var(--gruen)}
+.balken i.mittel{background:var(--signal)} .balken i.tief{background:var(--rot)}
+
+.knopf{background:var(--blau);color:#fff;border:0;padding:11px 20px;font:inherit;font-size:15px;font-weight:600;cursor:pointer}
+.knopf:hover{background:#17486D}
+.knopf:disabled{background:#B4BCC2;cursor:not-allowed}
+.knopf.neben{background:none;color:var(--blau);border:1px solid var(--blau)}
+.knopf.neben:hover{background:#F1F6FA}
+.knopf.klein{padding:6px 14px;font-size:13px}
+.knopfleiste{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:24px}
+.knopfleiste .status{font-size:13px;color:var(--stahl)}
+
+.eintrag{background:var(--flaeche);border-left:3px solid var(--signal);padding:13px 16px;margin-bottom:12px}
+.eintrag.c{border-left-color:var(--blau)}
+.eintrag.p{border-left-color:var(--stahl)}
+.eintrag .kopf{font-size:12px;color:var(--stahl);margin-bottom:4px}
+.eintrag .was{font-weight:600;font-size:14px}
+.eintrag .warum{margin:6px 0 0;font-size:14px;max-width:68ch}
+.meldung{background:var(--flaeche);border-left:3px solid var(--stahl);padding:11px 15px;margin-bottom:9px;font-size:14px}
+.meldung.gut{border-left-color:var(--gruen)}
+.meldung.schlecht{border-left-color:var(--rot)}
+.meldung.personal{border-left-color:var(--blau)}
+.leer{color:var(--stahl);font-size:14px;background:var(--flaeche);border:1px dashed var(--linie);padding:24px;text-align:center}
+
+/* ================= Postfach ================= */
+#postfach{display:flex;flex-direction:column;height:calc(100vh - 108px);min-height:520px;background:var(--chrome);color:var(--mtext);font-size:13.5px}
+#postfach .werkzeugleiste{display:flex;align-items:center;gap:6px;padding:7px 10px;background:var(--chrome);border-bottom:1px solid var(--rand);flex:none;flex-wrap:wrap}
+#postfach .wz{display:inline-flex;align-items:center;gap:6px;background:none;border:0;border-radius:4px;padding:6px 10px;font:inherit;font-size:13px;color:var(--mtext);cursor:pointer}
+#postfach .wz:hover{background:var(--chrome-dunkel)}
+#postfach .wz:disabled{color:#a5a5b0;cursor:default;background:none}
+#postfach .wz svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+#postfach .trenner{width:1px;height:20px;background:var(--rand);margin:0 3px}
+#postfach .uhr{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--mgrau);font-variant-numeric:tabular-nums}
+#postfach .uhr b{font-size:15px;color:var(--mtext)}
+#postfach .uhr.knapp b{color:var(--rot)}
+#postfach .schnellfilter{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--chrome);border-bottom:1px solid var(--rand);flex:none;flex-wrap:wrap}
+#postfach .pille{background:#fff;border:1px solid var(--rand);border-radius:3px;padding:4px 11px;font:inherit;font-size:12.5px;color:var(--mtext);cursor:pointer}
+#postfach .pille:hover{background:var(--mhover)}
+#postfach .pille[aria-pressed="true"]{background:var(--auswahl);border-color:var(--auswahl);color:#fff}
+#postfach .suche{flex:1;min-width:130px;padding:5px 10px;border:1px solid var(--rand);border-radius:3px;font:inherit;font-size:12.5px;background:#fff;color:var(--mtext)}
+#postfach .fenster{flex:1;display:grid;grid-template-columns:208px 1fr;min-height:0}
+#postfach .ordner{background:var(--chrome);border-right:1px solid var(--rand);overflow-y:auto;padding:8px 0}
+#postfach .konto{padding:6px 12px;font-weight:600;font-size:12.5px;display:flex;gap:7px;align-items:flex-start}
+#postfach .konto small{display:block;font-weight:400;color:var(--mgrau);font-size:11.5px}
+#postfach .ordnerzeile{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 26px;font-size:13px}
+#postfach .ordnerzeile.aktiv{background:var(--auswahl-hell);font-weight:600}
+#postfach .ordnerzeile .anzahl{margin-left:auto;color:var(--mgrau);font-size:12px;font-variant-numeric:tabular-nums}
+#postfach .ordnerzeile.aktiv .anzahl{color:var(--auswahl)}
+#postfach .ordnerzeile svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.6}
+#postfach .rechts{display:grid;grid-template-rows:minmax(140px,36%) 6px 1fr;min-height:0;background:#fff}
+#postfach .liste{overflow-y:auto;background:#fff}
+#postfach .griff{background:var(--chrome-dunkel);border-top:1px solid var(--rand);border-bottom:1px solid var(--rand)}
+#postfach table.m{width:100%;border-collapse:collapse}
+#postfach table.m th{position:sticky;top:0;background:var(--chrome);border-bottom:1px solid var(--rand);font-size:11.5px;font-weight:600;color:var(--mgrau);text-align:left;padding:5px 8px;z-index:2}
+#postfach table.m td{padding:5px 8px;border-bottom:1px solid var(--rand-hell);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:0}
+#postfach table.m tr:hover td{background:var(--mhover)}
+#postfach tr.ungelesen td{font-weight:700}
+#postfach tr.gewaehlt td,#postfach tr.gewaehlt:hover td{background:var(--auswahl);color:#fff}
+#postfach tr.gewaehlt .von,#postfach tr.gewaehlt .datum{color:#dbe9fb}
+#postfach tr.erledigt .betreff{text-decoration:line-through;opacity:.65}
+#postfach .stern{width:24px;text-align:center;cursor:pointer;color:#c9c9d2;font-size:14px}
+#postfach .stern.an{color:#e8b400}
+#postfach tr.gewaehlt .stern{color:#8fc0f5} #postfach tr.gewaehlt .stern.an{color:#ffd75e}
+#postfach .von,#postfach .datum{color:var(--mgrau)}
+#postfach .datum{font-variant-numeric:tabular-nums;text-align:right;width:74px}
+#postfach .tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:11px;font-weight:600;margin-right:6px;vertical-align:1px}
+#postfach .tag.a{background:#fbe4e7;color:#d7263d}
+#postfach .tag.b{background:#fdefdb;color:#e07b00}
+#postfach .tag.c{background:#e3f1e9;color:#1a7f4b}
+#postfach .tag.e{background:#e6e2f7;color:#6b3fa0}
+#postfach tr.gewaehlt .tag{background:rgba(255,255,255,.22);color:#fff}
+#postfach .lesen{overflow-y:auto;background:#fff}
+#postfach .betreffzeile{padding:12px 20px 0;font-size:16px;font-weight:600;line-height:1.35}
+#postfach .kopfblock{padding:12px 20px;border-bottom:1px solid var(--rand-hell);display:flex;gap:14px}
+#postfach .avatar{width:38px;height:38px;border-radius:50%;background:#5b6b7d;color:#fff;flex:none;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px}
+#postfach .zeile1{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#postfach .absender{font-weight:600}
+#postfach .adresse{color:var(--mgrau);font-size:12.5px}
+#postfach .wann{margin-left:auto;color:var(--mgrau);font-size:12.5px;white-space:nowrap}
+#postfach .an{color:var(--mgrau);font-size:12.5px;margin-top:2px}
+#postfach .koerper{padding:12px 20px 20px;font-size:14px;line-height:1.6;max-width:74ch;white-space:pre-line}
+#postfach .koerper .signatur{color:var(--mgrau);font-size:13px;margin-top:14px;padding-top:10px;border-top:1px solid var(--rand-hell);white-space:pre-line}
+#postfach .antwortleiste{display:flex;gap:6px;padding:0 20px 14px;flex-wrap:wrap}
+#postfach .antwortleiste .wz{border:1px solid var(--rand);background:#fff}
+#postfach .band{background:#f7f7fb;border-top:1px solid var(--rand);padding:14px 20px 22px}
+#postfach .band h4{margin:0 0 3px;font-size:13.5px}
+#postfach .band p.h{margin:0 0 12px;color:var(--mgrau);font-size:12.5px;max-width:70ch}
+#postfach .feldreihe{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:12px}
+#postfach .feld > span{display:block;font-size:12px;color:var(--mgrau);margin-bottom:5px}
+#postfach .wahlreihe{display:flex;gap:5px;flex-wrap:wrap}
+#postfach .wahl{background:#fff;border:1px solid var(--rand);border-radius:3px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer;color:var(--mtext)}
+#postfach .wahl:hover{background:var(--mhover)}
+#postfach .wahl[aria-pressed="true"]{background:var(--auswahl);border-color:var(--auswahl);color:#fff}
+#postfach .wahl.a[aria-pressed="true"]{background:#d7263d;border-color:#d7263d}
+#postfach .wahl.b[aria-pressed="true"]{background:#e07b00;border-color:#e07b00}
+#postfach .wahl.c[aria-pressed="true"]{background:#1a7f4b;border-color:#1a7f4b}
+#postfach .band textarea{width:100%;max-width:74ch;min-height:62px;padding:8px 10px;border:1px solid var(--rand);border-radius:3px;font:inherit;font-size:13.5px;resize:vertical;background:#fff;color:var(--mtext)}
+#postfach .band textarea:focus{outline:2px solid var(--auswahl);outline-offset:-1px;border-color:var(--auswahl)}
+#postfach .band .zaehler{font-size:11.5px;color:var(--mgrau);margin-top:4px}
+#postfach .band .zaehler.fehlt{color:#d7263d}
+#postfach .entscheidhinweis{background:#efe9fa;border-left:3px solid #6b3fa0;padding:9px 13px;font-size:13px;margin:0 20px 14px}
+#postfach .leerfenster{display:flex;align-items:center;justify-content:center;height:100%;color:var(--mgrau);font-size:13.5px;padding:30px;text-align:center}
+#postfach .statusleiste{flex:none;display:flex;align-items:center;gap:14px;padding:5px 12px;background:var(--chrome);border-top:1px solid var(--rand);font-size:12px;color:var(--mgrau);flex-wrap:wrap}
+#postfach .fortschritt{margin-left:auto;display:flex;align-items:center;gap:9px}
+#postfach .leiste{width:110px;height:7px;background:var(--rand);border-radius:4px;overflow:hidden}
+#postfach .leiste i{display:block;height:100%;background:var(--auswahl)}
+
+/* Auswertung */
+#auswertung{position:fixed;inset:0;background:rgba(20,20,26,.45);display:none;align-items:flex-start;justify-content:center;padding:24px;overflow-y:auto;z-index:60}
+#auswertung.offen{display:flex}
+#auswertung .blatt{background:#fff;max-width:840px;width:100%;border-radius:6px;padding:26px 30px 30px;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+#auswertung h2{margin:0 0 6px}
+#auswertung p.lead{margin:0 0 20px;color:var(--stahl);font-size:14px;max-width:70ch}
+.befund{border-left:3px solid var(--linie);padding:11px 15px;margin-bottom:11px;background:#fafafb;font-size:14px}
+.befund.gut{border-left-color:var(--gruen)} .befund.schlecht{border-left-color:var(--rot)}
+.befund b{display:block;margin-bottom:2px}
+#auswertung table{width:100%;border-collapse:collapse;margin-top:18px}
+#auswertung th,#auswertung td{text-align:left;padding:7px 9px;border-bottom:1px solid var(--rand-hell);font-size:13px;vertical-align:top}
+#auswertung th{color:var(--stahl);font-size:11.5px}
+
+@media (max-width:820px){
+  header.app .periode{font-size:18px;margin-left:0;width:100%}
+  main{padding:16px 12px 60px}
+  #postfach .fenster{grid-template-columns:1fr}
+  #postfach .ordner{display:none}
+  #postfach{height:calc(100vh - 96px)}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="app">
+  <div>
+    <h1>Bärtschi Metalltech AG</h1>
+    <div class="ort">Blech- und Metallbearbeitung · Lyss BE</div>
+  </div>
+  <div class="periode" id="periodeAnzeige"></div>
+</header>
+
+<div id="warnbalken"><span id="warntext"></span></div>
+<div id="kennzahlen"></div>
+
+<nav class="app" id="reiterleiste"></nav>
+<main id="inhalt"></main>
+<div id="auswertung"><div class="blatt" id="blatt"></div></div>
+
+<script>
+"use strict";
+
+/* ===================================================================
+   1) FESTWERTE
+   =================================================================== */
+const K = {
+  erloesProStunde:230, materialProStunde:94.35, lohnkostenProMaJahr:85940,
+  betriebsaufwandQuartal:787500, abschreibungQuartal:295000,
+  stundenProMaQuartal:387.5, anteilSchweissen:0.234,
+  zinsHypothek:0.019, zinsDarlehen:0.024, zinsKontokorrent:0.045,
+  kkLimite:2000000, amortisationQuartal:100000, steuersatz:0.155,
+  preiselastizitaet:-1.4, ueberzeitAnsatz:45, kostenAusschreibung:8500,
+  einarbeitungQuartale:2, postkorbMinuten:30
+};
+const SOLL = {laser:20, abkanten:16, schweissen:22, oberflaechen:8, montage:15};
+const QUARTALE = ["Q1 20X5","Q2 20X5","Q3 20X5","Q4 20X5","Q1 20X6","Q2 20X6","Q3 20X6","Q4 20X6"];
+const MARKT = [1.00,1.02,0.97,1.04,1.03,1.05,0.99,1.06];
+
+const r3 = n => +n.toFixed(3);
+const grenze = (n,a,b) => Math.min(b,Math.max(a,n));
+const fmt = n => Math.round(n).toLocaleString("de-CH").replace(/\u202F|\u00A0/g,"'");
+const pct = (n,k=1) => (n*100).toFixed(k)+" %";
+
+function startZustand(){
+  return {
+    periode:0,
+    kasse:1250000, forderungen:4100000, vorraete:4350000, uebrigesUV:400000,
+    anlagevermoegen:13500000, verbindlichkeiten:2350000, kontokorrent:900000,
+    uebrigesKFK:1550000, hypothek:4200000, darlehen:1800000,
+    langfrRueckstellungen:400000, eigenkapital:12400000,
+    personal:{laser:20, abkanten:16, schweissen:18, oberflaechen:8, montage:15},
+    inEinarbeitung:[], verwaltung:33, lernende:6,
+    motivation:0.72, ueberzeitSaldo:4850, fluktuation:0.112, absenzquote:0.034,
+    knowhow:1.00, lohnindex:1.00, weiterbildungQuartal:24000,
+    ausschreibungen:2, ueberzeitAuszahlen:false,
+    reputation:1.00, termintreue:0.91, auslastung:0.82, ausschuss:0.024,
+    preisindex:1.00, zahlungszielTage:54, zweiSchicht:false, marketingQuartal:99000,
+    energiezuschlag:0, zusatzAbschreibung:0, zusatzFixkosten:0,
+    motivationBonus:0, knowhowBonus:0, einmalkosten:0,
+    erledigt:[], journal:[], meldungen:[], ergebnisse:[], wahl:{},
+    postkorb:{}, gelesen:[], archiviert:[], postkorbBilanz:[], beendet:false
+  };
+}
+let S = startZustand();
+
+/* ===================================================================
+   2) EREIGNISSE – treffen als E-Mail im Postkorb ein
+   =================================================================== */
+const EREIGNISSE = [
+{ id:"grosskunde", periode:0, art:"betrieb",
+  von:"Marianne Frei", adresse:"m.frei@medtec-solutions.ch", zeit:"07:41", markiert:true,
+  titel:"Liefertermin KW 32 – und eine Forderung von 6 % Rabatt",
+  hkb:"F3 Marktleistung und Preiskalkulation · A7 Stakeholdermanagement",
+  mail:`Guten Morgen Frau Keller
+
+Zwei Punkte, beide dringend.
+
+Erstens: Ihr Innendienst hat am Freitag gemeldet, die Gehäuseserie 4711 komme statt in KW 32 erst in KW 34. Unsere Montagelinie ist auf KW 32 eingeplant. Ich brauche bis heute 12 Uhr eine verbindliche Aussage.
+
+Zweitens: Für das kommende Jahr erwarten wir 6 % Nachlass auf alle Positionen. Ein Mitbewerber liegt deutlich darunter. Ohne Anpassung schreiben wir das Volumen für das zweite Halbjahr neu aus.`,
+  signatur:"Marianne Frei\nLeiterin Einkauf, Medtec Solutions AG",
+  muster:{prio:"A", aktion:"selbst", warum:"Grösster Kunde mit 18 % Umsatzanteil, harte Frist um 12 Uhr, Drohung mit Volumenverlust. Vor der Antwort ist die widersprüchliche Information zum Laser zu klären."},
+  lage:"Der Kunde steht für 18 % des Umsatzes. Nach 6 % Rabatt bleiben vom kalkulierten Gewinnzuschlag von 8 % gut 2 %. Der Deckungsbeitrag bleibt deutlich positiv.",
+  optionen:[
+    {label:"Rabatt vollständig gewähren", folge:"Volumen gesichert, Marge sinkt spürbar.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex-0.025); s.reputation+=0.03;}},
+    {label:"3 % gegen eine Abnahmegarantie über zwei Jahre", folge:"Halber Preisverzicht, dafür Planungssicherheit.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex-0.012); s.reputation+=0.02;}},
+    {label:"Ablehnen und auf Qualität und Termintreue verweisen", folge:"Marge bleibt, ein Teil des Volumens ist gefährdet.",
+     wirkung:s=>{s.reputation-=0.06;}}
+  ]},
+
+{ id:"schichtkonflikt", periode:0, art:"fuehrung",
+  von:"Marco Iseli", adresse:"m.iseli@baertschi-metalltech.ch", zeit:"06:58",
+  titel:"Der Schichtkonflikt in der Schweisserei eskaliert",
+  hkb:"C5 Teams führen · C2 Alltagsführung · G3 Arbeitstechniken",
+  mail:`Andrea
+
+Ich schreibe dir das lieber, bevor ich es in der Sitzung sage.
+
+Die Frühschicht lässt uns jedes Mal die halbfertigen Rahmen und den Dreck stehen. Wir arbeiten deren Rückstand ab und hören dann, wir seien langsam. So mache ich das nicht mehr lange mit.
+
+Zwei von meinen Leuten haben mich letzte Woche gefragt, ob sie in die Montage wechseln können. Wenn da nichts passiert, sind wir im Winter zu dritt.`,
+  signatur:"Marco Iseli\nTeamleiter Spätschicht Schweisserei, seit elf Jahren im Betrieb",
+  muster:{prio:"A", aktion:"selbst", warum:"Betrifft den Engpass des Betriebs und kündigt weitere Abgänge an. Ein Teamleiter, der schreibt statt spricht, hat den direkten Weg bereits aufgegeben – das ist das eigentliche Signal."},
+  lage:"Der Überzeitsaldo liegt bei 4'850 Stunden, ein Grossteil davon in der Schweisserei. Zwischen Früh- und Spätschicht gibt es keine geregelte Übergabe.",
+  optionen:[
+    {label:"Schichtübergabe verbindlich regeln, 15 Minuten überlappend, beide Teamleitungen anwesend",
+     folge:"Kostet Produktionszeit, löst aber die Ursache.",
+     wirkung:s=>{s.motivationBonus+=0.05; s.zusatzFixkosten+=26000; s.knowhowBonus+=0.01;}},
+    {label:"Einzelgespräche mit den Wortführern beider Schichten führen", folge:"Entspannt kurzfristig, ändert die Übergabe nicht.",
+     wirkung:s=>{s.motivationBonus+=0.02;}},
+    {label:"Klarstellen, dass beide Schichten dieselben Vorgaben haben, und Leistung einfordern", folge:"Signal von oben, das Problem bleibt.",
+     wirkung:s=>{s.motivationBonus-=0.06;}}
+  ]},
+
+{ id:"laser", periode:1, art:"betrieb",
+  von:"Serge Aebi", adresse:"s.aebi@baertschi-metalltech.ch", zeit:"07:20", markiert:true,
+  titel:"Laser 1: Ersatz oder weiterflicken – Entscheid nötig",
+  hkb:"B1 Business Case · A4 Budget und Kostenrechnung · E3 Produktionsprozesse",
+  mail:`Guten Morgen Andrea
+
+Nach dem Ausfall im letzten Quartal habe ich die Zahlen zusammengestellt. Laser 1 hatte in den letzten sechs Monaten neun ungeplante Stillstände, im Schnitt zwei pro Monat.
+
+Ein Ersatzgerät kostet CHF 850'000, Lieferzeit vier Monate. Ein erweiterter Wartungsvertrag kostet CHF 45'000 im Jahr und verhindert die Ausfälle nicht, er verkürzt nur die Reparaturzeit.
+
+Ich brauche einen Entscheid, sonst plane ich weiter auf Sicht.`,
+  signatur:"Serge Aebi\nInstandhaltung",
+  muster:{prio:"A", aktion:"selbst", warum:"Investitionsentscheid mit Auswirkung auf Kapazität, Termintreue und Liquidität. Gehört auf die Geschäftsleitungsebene und nicht in die Warteschlaufe."},
+  lage:"Der Kontokorrent ist beansprucht, die Liquidität nicht üppig.",
+  optionen:[
+    {label:"Sofort ersetzen, über den Kontokorrent finanziert", folge:"Kapazität und Termintreue steigen, Liquidität wird knapp.",
+     wirkung:s=>{s.einmalkosten+=850000; s.anlagevermoegen+=850000; s.zusatzAbschreibung+=850000/32; s.termintreueBonus=(s.termintreueBonus||0)+0.03;}},
+    {label:"Über ein Investitionsdarlehen finanzieren (2.4 %, 5 Jahre)", folge:"Liquidität geschont, Verschuldung steigt.",
+     wirkung:s=>{s.darlehen+=850000; s.anlagevermoegen+=850000; s.zusatzAbschreibung+=850000/32; s.termintreueBonus=(s.termintreueBonus||0)+0.03;}},
+    {label:"Noch ein Jahr weiterfahren, Wartungsvertrag ausbauen", folge:"Kein Kapitalabfluss, laufende Störungen.",
+     wirkung:s=>{s.zusatzFixkosten+=45000; s.termintreueBonus=(s.termintreueBonus||0)-0.02; s.ausschuss+=0.004;}}
+  ]},
+
+{ id:"rekrutierung", periode:1, art:"fuehrung",
+  von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"07:55", markiert:true,
+  titel:"Schweisserei: fünf offene Stellen und keine Bewerbungen",
+  hkb:"C1 Rekrutieren und einführen · C3 Beurteilen und honorieren",
+  mail:`Guten Morgen Andrea
+
+Auf die letzten drei Ausschreibungen kamen elf Dossiers, davon zwei brauchbare. Beide sind wegen des Lohns abgesprungen – der eine hat mir gesagt, er bekomme bei Steinmann 800 Franken mehr im Monat.
+
+Unser Lohnband liegt im Branchenmittel. Wir haben in der Schweisserei jetzt fünf von 22 Stellen offen.
+
+Wie gehen wir vor? Ich brauche eine Richtung, sonst schreibe ich weiter ins Leere aus.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Der Engpass des ganzen Betriebs. Jede weitere Woche ohne Entscheid kostet Durchsatz, und die Ursache – das Lohnniveau – ist benannt."},
+  lage:"Die Schweisserei stellt 23.4 % der Fertigungsstunden und begrenzt den Durchsatz des gesamten Betriebs.",
+  optionen:[
+    {label:"Lohnband der Schweisserei um 8 % anheben und aktiv abwerben",
+     folge:"Rekrutierung wird leichter, Lohnkosten steigen dauerhaft – die Lohngleichheit im Betrieb ist mitzuprüfen.",
+     wirkung:s=>{s.lohnindex=r3(s.lohnindex+0.025); s.rekrutierungsbonus=(s.rekrutierungsbonus||0)+0.25; s.ausschreibungen=4;}},
+    {label:"Temporäre über eine Personalverleiherin einsetzen", folge:"Sofort verfügbar, teuer, Qualität schwankt.",
+     wirkung:s=>{s.personal.schweissen+=4; s.zusatzFixkosten+=118000; s.ausschuss+=0.006; s.motivationBonus-=0.02;}},
+    {label:"Zwei Mitarbeitende aus der Montage zu Schweissern ausbilden", folge:"Wirkt verzögert, bindet Leute an den Betrieb.",
+     wirkung:s=>{s.personal.montage-=2; s.inEinarbeitung.push({bereich:"schweissen",rest:2},{bereich:"schweissen",rest:2}); s.weiterbildungQuartal+=18000; s.motivationBonus+=0.04;}}
+  ]},
+
+{ id:"debitoren", periode:2, art:"betrieb",
+  von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:34",
+  titel:"Debitorenfrist bei 54 Tagen – Vorschlag zur Bereinigung",
+  hkb:"A1 Finanzanalyse · F4 Zahlungskonditionen · F5 Kundenbeziehung",
+  mail:`Guten Morgen
+
+Die Auswertung per Quartalsende liegt vor: durchschnittliche Debitorenfrist 54 Tage, vor drei Jahren waren es 48. Sechs Kunden stehen über 90 Tage.
+
+Jeder zusätzliche Tag bindet uns rund CHF 75'000. Das ist genau das Geld, das wir beim Kontokorrent teuer zurückkaufen.
+
+Der Verkauf sträubt sich gegen strengere Konditionen. Ich hätte gern einen Entscheid von oben.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"B", aktion:"selbst", warum:"Keine Frist heute, aber ein strukturelles Liquiditätsthema mit direkter Verbindung zu den Kontokorrentzinsen. Selbst entscheiden, weil der Verkauf blockiert."},
+  lage:"Die Verkaufsleitung warnt vor verärgerten Kunden.",
+  optionen:[
+    {label:"Zahlungsziel auf 30 Tage kürzen, 2 % Skonto anbieten", folge:"Liquidität kommt schneller, kostet Erlös.",
+     wirkung:s=>{s.zahlungszielTage=32; s.preisindex=r3(s.preisindex-0.008);}},
+    {label:"Mahnwesen straffen, Konditionen unverändert lassen", folge:"Wirkt langsam, kostet nur Aufwand.",
+     wirkung:s=>{s.zahlungszielTage=46; s.zusatzFixkosten+=12000;}},
+    {label:"Nichts ändern, Kundenbeziehungen nicht belasten", folge:"Working Capital bleibt gebunden.",
+     wirkung:s=>{s.zahlungszielTage=56;}}
+  ]},
+
+{ id:"lohnrunde", periode:2, art:"fuehrung",
+  von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"08:02", markiert:true,
+  titel:"Lohnrunde – und ein unangenehmer Befund",
+  hkb:"C3 Beurteilen und honorieren · A3 Arbeitsumfeld und Kultur",
+  mail:`Guten Morgen Andrea
+
+Die Lohnrunde steht an. Teuerung 1.1 %, Branchenmittel 1.8 %.
+
+Bei der Vorbereitung ist mir etwas aufgefallen, das ich nicht für mich behalten kann: Zwei Sachbearbeiterinnen mit gleicher Funktion und vergleichbarer Erfahrung liegen rund 6 % unter ihren männlichen Kollegen. Historisch gewachsen, nicht böse Absicht – aber es steht so in unseren Zahlen.
+
+Die Lohnsumme beträgt CHF 9.17 Mio. Ich brauche deinen Entscheid bis Ende Woche für die Lohnläufe.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Frist Ende Woche und ein Gleichstellungsbefund, der dokumentiert ist. Wer ihn kennt und nichts tut, entscheidet sich damit ebenfalls – nur schlechter."},
+  lage:"",
+  optionen:[
+    {label:"1.8 % generell und die festgestellte Lohndifferenz gezielt korrigieren", folge:"Kostet spürbar, stellt die Gleichstellung her, bevor jemand fragt.",
+     wirkung:s=>{s.lohnindex=r3(s.lohnindex+0.022); s.motivationBonus+=0.06; s.reputation+=0.02;}},
+    {label:"1.0 % generell, individuelle Korrekturen im nächsten Jahr", folge:"Günstiger, verschiebt das Gleichstellungsthema.",
+     wirkung:s=>{s.lohnindex=r3(s.lohnindex+0.010); s.motivationBonus-=0.02;}},
+    {label:"Lohnsumme einfrieren, stattdessen eine einmalige Erfolgsprämie", folge:"Schont die Fixkosten, wirkt nur einmal.",
+     wirkung:s=>{s.einmalkosten+=140000; s.motivationBonus+=0.01;}}
+  ]},
+
+{ id:"energie", periode:3, art:"betrieb",
+  von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:16",
+  titel:"Energiekosten +23 % – Investitionsvorschlag der Instandhaltung",
+  hkb:"D2 Prozesse optimieren · B4 Nachhaltigkeit · E5 Interne Logistik",
+  mail:`Guten Morgen
+
+Die Energiekosten liegen 23 % über dem Vorjahr, Laser und Pulverbeschichtung ziehen den Löwenanteil.
+
+Herr Aebi hat eine Abwärmenutzung mit neuer Steuerung offeriert: CHF 240'000, senkt die Energiekosten um rund 30 %. Amortisation nach meiner Rechnung gut drei Jahre.
+
+Alternativ könnten wir den Anstieg über die Preise weitergeben. Das müsste allerdings der Markt hergeben.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"B", aktion:"selbst", warum:"Keine Frist, aber jeder Monat ohne Entscheid kostet Geld. Amortisation über drei Jahre ist ein rechenbarer Fall, kein Bauchentscheid."},
+  lage:"",
+  optionen:[
+    {label:"Abwärmenutzung installieren", folge:"Einmalige Investition, dauerhaft tiefere Fixkosten.",
+     wirkung:s=>{s.einmalkosten+=240000; s.anlagevermoegen+=240000; s.zusatzAbschreibung+=240000/40; s.energiezuschlag-=26000;}},
+    {label:"Energiekosten an die Kunden weitergeben", folge:"Marge gehalten, Preis steigt gegen den Markt.",
+     wirkung:s=>{s.preisindex=r3(s.preisindex+0.018);}},
+    {label:"Abwarten, die Preise beruhigen sich womöglich", folge:"Keine Investition, volle Kostenlast.",
+     wirkung:s=>{s.energiezuschlag+=32000;}}
+  ]},
+
+{ id:"leistungsproblem", periode:3, art:"fuehrung",
+  von:"Beat Zwahlen", adresse:"b.zwahlen@baertschi-metalltech.ch", zeit:"07:48",
+  titel:"Teamleiter Montage – so geht es nicht weiter",
+  hkb:"C2 Alltagsführung · C4 Fördern und entwickeln",
+  mail:`Andrea
+
+Ich muss das Thema Hans Lüthi ansprechen. Die Montage verfehlt seit vier Monaten die Termine, die Nacharbeitsquote ist doppelt so hoch wie im Rest des Betriebs. Zwei Leute haben sich über unklare Anweisungen beschwert.
+
+Ich habe ihn darauf angesprochen. Er sagte wörtlich: «Ich weiss, dass die Zahlen nicht stimmen. Aber seit der Umstellung auf die neuen Baugruppen komme ich nicht mehr nach, und fragen kann ich niemanden – alle anderen sind ja auch am Anschlag.»
+
+Er ist 19 Jahre bei uns, seit drei Jahren in der Funktion. Es gibt bisher kein dokumentiertes Gespräch und keine Verwarnung.`,
+  signatur:"Beat Zwahlen\nProduktionsleiter",
+  muster:{prio:"A", aktion:"selbst", warum:"Leistungsproblem mit Betriebsauswirkung und arbeitsrechtlicher Vorgeschichte – genauer: ohne. Ohne dokumentierte Gespräche ist jede harte Massnahme angreifbar."},
+  lage:"",
+  optionen:[
+    {label:"Zielvereinbarung über sechs Monate mit Coaching und schriftlicher Standortbestimmung",
+     folge:"Braucht Zeit und Führungsaufwand, ist arbeitsrechtlich sauber und hält Wissen im Haus.",
+     wirkung:s=>{s.zusatzFixkosten+=34000; s.motivationBonus+=0.04; s.knowhowBonus+=0.015;}},
+    {label:"Aus der Führungsrolle nehmen, als Facharbeiter weiterbeschäftigen",
+     folge:"Löst das Leistungsproblem, ist für die Person eine Kränkung und im Team sichtbar.",
+     wirkung:s=>{s.motivationBonus-=0.03; s.knowhowBonus+=0.005;}},
+    {label:"Kündigen und die Stelle extern besetzen",
+     folge:"Ohne vorgängige Gespräche heikel; 19 Dienstjahre bedeuten sechs Monate Kündigungsfrist.",
+     wirkung:s=>{s.personal.montage-=1; s.knowhowBonus-=0.05; s.motivationBonus-=0.09; s.einmalkosten+=95000;}}
+  ]},
+
+{ id:"erp", periode:4, art:"betrieb",
+  von:"Lukas Wenger", adresse:"l.wenger@baertschi-metalltech.ch", zeit:"07:25",
+  titel:"Nachkalkulation ist Schätzung – Antrag ERP-Ersatz",
+  hkb:"D2 Digitalisieren · D3 Datenbestände nutzen · G1 Projekte leiten",
+  mail:`Guten Morgen Andrea
+
+Ich habe versucht, den Auftrag 5012 nachzukalkulieren. Ergebnis: Ich kann es nicht. Wir erfassen keine Ist-Zeiten, ich rechne mit Vorgabewerten von 2019 und einem Bauchgefühl.
+
+Beim Auftrag 5012 lagen wir nach meiner Schätzung 34 % über der Vorgabe. Ob das stimmt, weiss niemand.
+
+Ersatz des ERP mit Betriebsdatenerfassung: CHF 380'000, drei Quartale Projektdauer, bindet Leute aus AVOR und Administration.`,
+  signatur:"Lukas Wenger\nLeiter AVOR und Konstruktion",
+  muster:{prio:"B", aktion:"termin", warum:"Grundlegend, aber kein Notfall. Ein Projekt dieser Grösse braucht einen Termin mit Vorbereitung, keine Entscheidung zwischen Tür und Angel."},
+  lage:"",
+  optionen:[
+    {label:"ERP ersetzen und Betriebsdatenerfassung einführen", folge:"Kalkulation wird belastbar, das Projekt kostet Kapazität.",
+     wirkung:s=>{s.einmalkosten+=380000; s.anlagevermoegen+=380000; s.zusatzAbschreibung+=380000/20; s.ausschuss-=0.005; s.zusatzFixkosten+=20000; s.motivationBonus-=0.02;}},
+    {label:"Nur die Betriebsdatenerfassung nachrüsten", folge:"Kleiner Schritt, geringes Risiko.",
+     wirkung:s=>{s.einmalkosten+=95000; s.anlagevermoegen+=95000; s.zusatzAbschreibung+=95000/20; s.ausschuss-=0.002;}},
+    {label:"Zurückstellen bis nach der Nachfolgeregelung", folge:"Kalkulation bleibt Schätzung.",
+     wirkung:s=>{}}
+  ]},
+
+{ id:"wissensverlust", periode:4, art:"fuehrung",
+  von:"Lukas Wenger", adresse:"l.wenger@baertschi-metalltech.ch", zeit:"07:31",
+  titel:"Zwei Pensionierungen in der Konstruktion – Übergabe planen",
+  hkb:"D5 Wissensmanagement · C4 Fördern und entwickeln · C5 Teams führen",
+  mail:`Andrea, gleich noch ein zweites Thema.
+
+Hansruedi geht in 14 Monaten, Erwin sechs Monate später. Die beiden decken zusammen rund 40 % unserer Konstruktionsleistung ab.
+
+Was mir Sorgen macht, sind nicht die Stunden. Es sind die Werkzeuge, die Kundenhistorie und die Sonderlösungen der letzten zwanzig Jahre. Vieles davon steht nirgends – es steht in ihren Köpfen.
+
+Wenn wir erst in einem Jahr anfangen, ist es zu spät.`,
+  signatur:"Lukas Wenger\nLeiter AVOR und Konstruktion",
+  muster:{prio:"B", aktion:"selbst", warum:"Wichtig und nicht dringend – die gefährlichste Kategorie, weil sie sich immer verschieben lässt. Der Zeitpunkt zum Handeln ist genau jetzt, 14 Monate vorher."},
+  lage:"",
+  optionen:[
+    {label:"Tandem-Modell: je eine jüngere Person zwölf Monate mitlaufen lassen", folge:"Teuer im Übergang, sichert das Wissen im Haus.",
+     wirkung:s=>{s.verwaltung+=2; s.zusatzFixkosten+=48000; s.knowhowBonus+=0.05; s.motivationBonus+=0.04;}},
+    {label:"Wissen dokumentieren, Nachfolge extern rekrutieren", folge:"Dokumentation ist nie vollständig, Externe bringen neue Ideen.",
+     wirkung:s=>{s.zusatzFixkosten+=22000; s.knowhowBonus+=0.02; s.ausschreibungen=Math.max(s.ausschreibungen,3);}},
+    {label:"Beiden ein Pensum von 40 % im Ruhestand anbieten", folge:"Günstige Übergangslösung, verschiebt die Nachfolge um Jahre.",
+     wirkung:s=>{s.zusatzFixkosten+=64000; s.knowhowBonus+=0.03;}}
+  ]},
+
+{ id:"lieferant", periode:5, art:"betrieb",
+  von:"Reto Hämmerli", adresse:"r.haemmerli@stahlcenter-mittelland.ch", zeit:"07:05",
+  titel:"Preisanpassung Feinblech und neue Lieferfristen",
+  hkb:"E1 Verfügbarkeit sicherstellen · E4 Lieferantenbeziehungen",
+  mail:`Sehr geehrte Frau Keller
+
+Wir müssen die Preise für Feinblech per sofort um 7 % anpassen. Zudem verlängert sich unsere Standardlieferfrist von zwei auf vier Wochen.
+
+Wir bedauern diesen Schritt und danken für Ihr Verständnis für die aktuelle Marktlage.`,
+  signatur:"Reto Hämmerli\nVerkaufsleiter, Stahlcenter Mittelland AG",
+  muster:{prio:"B", aktion:"selbst", warum:"7 % auf die grösste Materialposition und doppelte Lieferfrist – das trifft Marge und Termintreue zugleich. Kein Notfall heute, aber diese Woche zu entscheiden."},
+  lage:"Ein EU-Anbieter liefert zertifiziert und günstiger, aber mit längerem Transportweg und Währungsrisiko.",
+  optionen:[
+    {label:"Zweitlieferanten in der EU aufbauen", folge:"Preisdruck und Abhängigkeit sinken, Koordination steigt.",
+     wirkung:s=>{s.zusatzFixkosten+=18000; s.materialrabatt=(s.materialrabatt||0)+0.03;}},
+    {label:"Beim Lieferanten bleiben und die Jahresmenge verhandeln", folge:"Beziehung gesichert, Preisvorteil kleiner.",
+     wirkung:s=>{s.materialrabatt=(s.materialrabatt||0)+0.015;}},
+    {label:"Lagerbestand aufbauen, bevor der Preis erneut steigt", folge:"Kurzfristig günstiger, bindet Kapital.",
+     wirkung:s=>{s.einmalkosten+=420000; s.vorraete+=420000;}}
+  ]},
+
+{ id:"absenz", periode:5, art:"fuehrung",
+  von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"07:44",
+  titel:"Ausfall Leiterin Oberflächen – siebte Woche",
+  hkb:"C2 Alltagsführung · A3 Arbeitsumfeld · C5 Teams führen",
+  mail:`Guten Morgen Andrea
+
+Frau Zbinden ist heute in der siebten Woche krankgeschrieben. Die Lohnfortzahlung läuft über die Kollektiv-Taggeldversicherung, das ist geregelt.
+
+Nicht geregelt ist die Führung der Linie. Die Pulverbeschichtung läuft auf Sicht, zwei Mitarbeitende haben Überzeit aufgebaut, um sie am Laufen zu halten. Und im Team kursieren Gerüchte über den Grund des Ausfalls.
+
+Wir sollten etwas sagen – und etwas entscheiden.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Sieben Wochen ohne Führung in einer Kostenstelle, dazu Gerüchte im Team. Beides wird jeden Tag schlimmer, den man wartet."},
+  lage:"",
+  optionen:[
+    {label:"Stellvertretung offiziell einsetzen, Rückkehrgespräch vorbereiten, Team sachlich informieren",
+     folge:"Klarheit im Team, Wiedereingliederung wird planbar.",
+     wirkung:s=>{s.motivationBonus+=0.05; s.zusatzFixkosten+=14000;}},
+    {label:"Die Linie vorübergehend vom Produktionsleiter mitführen lassen", folge:"Kostet nichts, überlastet die Produktionsleitung.",
+     wirkung:s=>{s.motivationBonus-=0.03; s.termintreueBonus=(s.termintreueBonus||0)-0.015;}},
+    {label:"Ersatz suchen und die Rückkehr offenlassen", folge:"Schafft Kapazität, sendet ein Signal an alle, die einmal ausfallen könnten.",
+     wirkung:s=>{s.ausschreibungen=Math.max(s.ausschreibungen,3); s.motivationBonus-=0.08;}}
+  ]},
+
+{ id:"reklamation", periode:6, art:"betrieb",
+  von:"Peter Lauber", adresse:"p.lauber@bahntechnik.ch", zeit:"07:39", markiert:true,
+  titel:"Reklamation 180 Baugruppen – Rückmeldung bis Mittwoch",
+  hkb:"F5 Kundenbeziehungen pflegen · D4 Qualität · G4 Probleme lösen",
+  mail:`Sehr geehrte Frau Keller
+
+Wir kommen auf unsere Reklamation vom 3. des Monats zurück. Die 180 Baugruppen weisen an der Konsole eine Abweichung auf, die unsere Montage nicht ohne Nacharbeit verbaut.
+
+Uns ist bewusst, dass die Abweichung innerhalb Ihrer Zeichnungstoleranz liegt. Trotzdem erwarten wir bis Mittwoch eine Lösung.`,
+  signatur:"Peter Lauber\nLeiter Beschaffung, Bahntechnik AG",
+  muster:{prio:"A", aktion:"selbst", warum:"Frist Mittwoch und ein Kunde mit 21 % Umsatzanteil. Die Toleranzfrage ist rechtlich klar und geschäftlich trotzdem offen – das entscheidet niemand nebenbei."},
+  lage:"Die Garantierückstellung von CHF 300'000 würde reichen.",
+  optionen:[
+    {label:"Vollständig nacharbeiten, Kosten selbst tragen", folge:"Beziehung gerettet, Ergebnis belastet.",
+     wirkung:s=>{s.zusatzFixkosten+=145000; s.reputation+=0.05;}},
+    {label:"Kosten hälftig teilen, Toleranzen künftig schriftlich fixieren", folge:"Fairer Kompromiss, der Prozess wird besser.",
+     wirkung:s=>{s.zusatzFixkosten+=72000; s.reputation+=0.02; s.ausschuss-=0.003;}},
+    {label:"Auf der Zeichnungstoleranz beharren", folge:"Rechtlich haltbar, geschäftlich riskant.",
+     wirkung:s=>{s.reputation-=0.09;}}
+  ]},
+
+{ id:"mitarbeitergespraech", periode:6, art:"fuehrung",
+  von:"Beat Zwahlen", adresse:"b.zwahlen@baertschi-metalltech.ch", zeit:"07:52",
+  titel:"Sascha Brügger hat ein Vorstellungsgespräch bei Steinmann",
+  hkb:"C2 Alltagsführung · C3 Honorieren · C4 Fördern und entwickeln",
+  mail:`Andrea
+
+Sascha Brügger hat mir gestern gesagt, dass er nächste Woche zu Steinmann zum Gespräch geht. Er wollte offen sein.
+
+Seine Worte: «Ich habe die Anlage vier Jahre lang am Laufen gehalten, auch an Samstagen. Jetzt hat der Neue mehr Lohn als ich, und im Beurteilungsgespräch höre ich, ich sei zuverlässig. Ich bin 41. Zuverlässig ist kein Ziel.»
+
+Er ist einer von drei Leuten, die den 6-kW-Laser einrichten können. Ein Gegenangebot bringt allerdings unsere Lohnlogik durcheinander.`,
+  signatur:"Beat Zwahlen\nProduktionsleiter",
+  muster:{prio:"A", aktion:"selbst", warum:"Ein Schlüsselmitarbeiter mit konkretem Termin nächste Woche – das Zeitfenster ist Tage, nicht Wochen. Der genannte Grund ist zudem ein Systemfehler, kein Einzelfall."},
+  lage:"",
+  optionen:[
+    {label:"Entwicklungsperspektive anbieten: Weiterbildung zum Produktionsfachmann, danach Stellvertretung",
+     folge:"Bindet über die Perspektive statt über den Lohn, wirkt mittelfristig.",
+     wirkung:s=>{s.weiterbildungQuartal+=14000; s.motivationBonus+=0.06; s.knowhowBonus+=0.02;}},
+    {label:"Lohn auf das Niveau des neuen Kollegen anheben und die Lohnstruktur überprüfen",
+     folge:"Löst den akuten Fall und die Ursache, kostet über alle Betroffenen.",
+     wirkung:s=>{s.lohnindex=r3(s.lohnindex+0.014); s.motivationBonus+=0.05;}},
+    {label:"Ziehen lassen und die Stelle ausschreiben", folge:"Konsequent, aber der Laser hat dann noch zwei Einrichter.",
+     wirkung:s=>{s.personal.laser-=1; s.knowhowBonus-=0.04; s.motivationBonus-=0.05; s.ausschreibungen=Math.max(s.ausschreibungen,3);}}
+  ]},
+
+{ id:"nachfolge", periode:7, art:"betrieb",
+  von:"Thomas Bärtschi", adresse:"t.baertschi@baertschi-metalltech.ch", zeit:"06:44",
+  titel:"Nachfolge – jetzt möchte ich es angehen",
+  hkb:"A5 Veränderungsprozesse · A2 Aufbauorganisation · A1 Strategie",
+  mail:`Liebe Andrea
+
+Ich werde nächsten Monat 60. Ich habe das Thema lange vor mir hergeschoben, jetzt möchte ich es angehen.
+
+Die Familie hält 70 %. Beat traut sich die Führung zu, hat aber keine kaufmännische Ausbildung. Ein Externer wäre teurer und kulturell ein Risiko.
+
+Ich möchte deine Einschätzung, bevor ich mit dem Verwaltungsrat spreche.`,
+  signatur:"Thomas Bärtschi\nGeschäftsführer",
+  muster:{prio:"A", aktion:"selbst", warum:"Diesmal keine unverbindliche Anfrage, sondern ein Auftrag mit Anschlusstermin beim Verwaltungsrat. Strategische Weichenstellung für die nächsten zehn Jahre."},
+  lage:"",
+  optionen:[
+    {label:"Produktionsleiter aufbauen, Übergabe über zwei Jahre", folge:"Kontinuität, kostet Ausbildung und Zeit.",
+     wirkung:s=>{s.zusatzFixkosten+=60000; s.motivationBonus+=0.05; s.reputation+=0.02;}},
+    {label:"Externe Geschäftsführung suchen", folge:"Frischer Blick, hohes Umsetzungsrisiko.",
+     wirkung:s=>{s.zusatzFixkosten+=110000; s.motivationBonus-=0.04; s.reputation-=0.02;}},
+    {label:"Entscheid um zwei Jahre vertagen", folge:"Das Problem wächst mit.",
+     wirkung:s=>{s.reputation-=0.04; s.motivationBonus-=0.03;}}
+  ]},
+
+{ id:"lernende", periode:7, art:"fuehrung",
+  von:"Sandra Kohler", adresse:"s.kohler@baertschi-metalltech.ch", zeit:"07:29",
+  titel:"Berufsbildung – ich kann das so nicht weitermachen",
+  hkb:"C4 Fördern und entwickeln · C1 Rekrutieren · A3 Kultur",
+  mail:`Hallo Andrea
+
+Nuredin hat die Lehre abgebrochen. Er war im zweiten Lehrjahr.
+
+Ich mache die Berufsbildung gern. Aber ich mache sie zusätzlich zu meiner Arbeit, und wenn der Auftragsdruck steigt, stehen die Lernenden herum. Das ist niemandem gegenüber fair – ihnen nicht und mir nicht.
+
+Zur Erinnerung: Von unseren heutigen Facharbeitern haben elf ihre Lehre bei uns gemacht.`,
+  signatur:"Sandra Kohler\nBerufsbildnerin Polymechanik",
+  muster:{prio:"A", aktion:"selbst", warum:"Ein Lehrabbruch und eine Berufsbildnerin, die aufgeben will – bei einem Betrieb, der elf seiner Facharbeiter selbst ausgebildet hat, ist das ein Angriff auf die eigene Fachkräftebasis."},
+  lage:"",
+  optionen:[
+    {label:"20 % Pensum für die Berufsbildung freistellen und eine zweite Person ausbilden",
+     folge:"Kostet Kapazität, macht die Ausbildung planbar.",
+     wirkung:s=>{s.zusatzFixkosten+=42000; s.motivationBonus+=0.05; s.knowhowBonus+=0.03; s.lernende+=1;}},
+    {label:"Die Betreuung auf drei Teamleitungen verteilen", folge:"Kostet nichts direkt, verteilt die Überlastung.",
+     wirkung:s=>{s.motivationBonus-=0.02; s.knowhowBonus+=0.01;}},
+    {label:"Die Zahl der Lernenden von sechs auf drei reduzieren", folge:"Entlastet sofort, schwächt die eigene Fachkräftebasis.",
+     wirkung:s=>{s.lernende-=3; s.knowhowBonus-=0.02; s.motivationBonus-=0.03;}}
+  ]}
+];
+
+/* ===================================================================
+   3) ZUSATZPOST – Störgeräusche, Fristen, Widersprüche
+   =================================================================== */
+const ZUSATZPOST = [
+{ id:"laserOk", periode:0, von:"Beat Zwahlen", adresse:"b.zwahlen@baertschi-metalltech.ch", zeit:"07:12",
+  betreff:"Laser 1 läuft wieder – Termine sind gerettet", widerspruch:"laserTeil",
+  koerper:`Hallo Andrea
+
+Gute Nachricht zum Wochenstart: Laser 1 ist seit Freitagabend wieder in Betrieb. Wir haben am Samstag eine Sonderschicht gefahren und den Rückstand fast aufgeholt.
+
+Aus meiner Sicht können wir KW 32 zusagen. Ich würde Medtec direkt bestätigen, damit dort Ruhe einkehrt.`,
+  signatur:"Beat Zwahlen\nProduktionsleiter",
+  muster:{prio:"A", aktion:"selbst", warum:"Widerspricht direkt der Meldung der Instandhaltung. Wer hier ungeprüft weitermeldet, sagt dem Kunden etwas zu, das der Betrieb nicht halten kann."}},
+
+{ id:"laserTeil", periode:0, von:"Serge Aebi", adresse:"s.aebi@baertschi-metalltech.ch", zeit:"07:28",
+  betreff:"Laser 1: Ersatzteil erst in 12 Arbeitstagen", widerspruch:"laserOk",
+  koerper:`Guten Morgen
+
+Zur Information: Laser 1 läuft seit Freitag im Notbetrieb mit reduzierter Leistung. Die definitive Reparatur braucht das Antriebsmodul, das der Hersteller mit 12 Arbeitstagen angibt.
+
+Im Notbetrieb schaffen wir rund 60 Prozent der normalen Schnittleistung, und ich würde die Anlage nicht über zwei Schichten fahren. Bitte bei der Terminplanung berücksichtigen.`,
+  signatur:"Serge Aebi\nInstandhaltung",
+  muster:{prio:"A", aktion:"selbst", warum:"Der Gegenpol zur Meldung des Produktionsleiters. 60 % Schnittleistung über zwölf Arbeitstage heisst rechnerisch: KW 32 ist kaum zu halten."}},
+
+{ id:"bank", periode:0, von:"Christian Marti", adresse:"christian.marti@bekb.ch", zeit:"Fr 16:20",
+  betreff:"Zwischenabschluss – Eingang bis Freitag",
+  koerper:`Sehr geehrte Frau Keller
+
+Gemäss Kreditvertrag benötigen wir den Zwischenabschluss bis spätestens Freitag dieser Woche. Bisher ist bei uns nichts eingegangen.
+
+Ich weise vorsorglich darauf hin, dass die Kontokorrentlimite an die fristgerechte Berichterstattung gebunden ist.`,
+  signatur:"Christian Marti\nFirmenkundenberater, Berner Kantonalbank",
+  muster:{prio:"A", aktion:"delegieren", warum:"Harte Frist mit direkter Folge für die Kreditlimite, aber fachlich bei der Finanzabteilung. Dringend heisst nicht automatisch selbst."}},
+
+{ id:"apero", periode:0, stoerung:true, von:"Gewerbeverein Lyss", adresse:"info@gewerbe-lyss.ch", zeit:"Fr 09:15",
+  betreff:"Einladung zum Herbst-Apéro vom 24. Oktober",
+  koerper:`Sehr geehrte Damen und Herren
+
+Der Gewerbeverein Lyss lädt herzlich zum traditionellen Herbst-Apéro ein. Anmeldung bis 10. Oktober über unsere Website.`,
+  signatur:"Gewerbeverein Lyss, Sekretariat",
+  muster:{prio:"C", aktion:"ablegen", warum:"Kein Handlungsbedarf innerhalb der Frist. Ablegen oder zur Terminübernahme weitergeben."}},
+
+{ id:"newsletter", periode:0, stoerung:true, von:"Stahlpreis-Monitor", adresse:"news@stahlpreis-monitor.ch", zeit:"Fr 06:00",
+  betreff:"Wochenbericht: Feinblech +1.2 %, Ausblick Q4",
+  koerper:`Der wöchentliche Marktbericht für Flachstahl und Feinblech.
+
+Feinblech legte in der Berichtswoche um 1.2 Prozent zu. Für das vierte Quartal erwarten die befragten Händler eine Seitwärtsbewegung.`,
+  signatur:"Stahlpreis-Monitor, Redaktion",
+  muster:{prio:"C", aktion:"ablegen", warum:"Hintergrundinformation ohne Frist und ohne persönliche Adressierung. Relevant erst bei der Lieferantenverhandlung."}},
+
+{ id:"suva", periode:1, von:"SUVA Agentur Bern", adresse:"bern@suva.ch", zeit:"Fr 14:10",
+  betreff:"Betriebsbegehung Arbeitssicherheit – Terminvorschlag",
+  koerper:`Sehr geehrte Damen und Herren
+
+Wir schlagen für die periodische Betriebsbegehung den 12. des kommenden Monats vor. Bitte bestätigen Sie den Termin innert zehn Tagen oder schlagen Sie eine Alternative vor.
+
+Bereitzuhalten sind die Dokumentation der Sicherheitsbeauftragten sowie die Absenzstatistik der letzten zwei Jahre.`,
+  signatur:"SUVA, Agentur Bern",
+  muster:{prio:"B", aktion:"delegieren", warum:"Frist von zehn Tagen, fachlich beim Sicherheitsbeauftragten. Delegieren mit Rückmeldung – aber nicht liegen lassen."}},
+
+{ id:"kuendigung", periode:1, von:"Nadia Ruch", adresse:"n.ruch@baertschi-metalltech.ch", zeit:"08:10",
+  betreff:"Kündigung R. Kunz, Schweisserei, per 30. November",
+  koerper:`Nachtrag zu meiner Mail von vorhin:
+
+Ruedi Kunz hat soeben schriftlich gekündigt, per Ende November unter Einhaltung der dreimonatigen Frist. Neun Dienstjahre, einer von zwei Leuten, die die Bahnrahmen schweissen können.
+
+Als Grund nennt er im Schreiben «berufliche Neuorientierung». Mir gegenüber hat er die Schichtsituation erwähnt.`,
+  signatur:"Nadia Ruch\nPersonaladministration",
+  muster:{prio:"A", aktion:"selbst", warum:"Der Engpass verschärft sich, und der genannte Grund verweist auf ein Führungsthema, das bereits bekannt war. Austrittsgespräch selbst führen."}},
+
+{ id:"mahnliste", periode:2, von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:36",
+  betreff:"Mahnliste: sechs Kunden über 90 Tage",
+  koerper:`Anbei die Übersicht. Sechs Kunden stehen über 90 Tage, zusammen CHF 640'000.
+
+Zwei davon sind Stammkunden, bei denen der Verkauf jeweils interveniert, wenn wir die dritte Mahnung schicken. Ich brauche eine Linie, an die ich mich halten kann.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"B", aktion:"selbst", warum:"Gehört sachlich zum Debitorenentscheid und sollte zusammen mit ihm behandelt werden, nicht getrennt."}},
+
+{ id:"kantine", periode:2, stoerung:true, von:"Personalkommission", adresse:"peko@baertschi-metalltech.ch", zeit:"Do 16:44",
+  betreff:"Umfrage Menüplan Kantine – Rücklauf bisher mager",
+  koerper:`Liebe Kolleginnen und Kollegen
+
+Bisher haben erst 34 Personen an der Umfrage zum Menüplan teilgenommen. Wir verlängern die Frist um zwei Wochen.`,
+  signatur:"Personalkommission",
+  muster:{prio:"C", aktion:"ablegen", warum:"Kein Entscheidungsbedarf auf Geschäftsleitungsebene. Der Personalkommission überlassen."}},
+
+{ id:"stromrechnung", periode:3, von:"Regula Stucki", adresse:"r.stucki@baertschi-metalltech.ch", zeit:"07:20",
+  betreff:"Stromabrechnung Quartal: +31 % gegenüber Vorjahresquartal",
+  koerper:`Zur Kenntnis und als Grundlage für den Investitionsentscheid: Die Abrechnung liegt 31 % über dem Vorjahresquartal, deutlich über den 23 % im Jahresdurchschnitt.
+
+Der Anstieg entfällt zu rund zwei Dritteln auf die Pulverbeschichtung.`,
+  signatur:"Regula Stucki\nLeiterin Finanzen und Rechnungswesen",
+  muster:{prio:"B", aktion:"selbst", warum:"Liefert die Zahl, die den Investitionsentscheid stützt. Zusammen mit diesem behandeln."}},
+
+{ id:"montageOk", periode:3, von:"Beat Zwahlen", adresse:"b.zwahlen@baertschi-metalltech.ch", zeit:"07:50", widerspruch:"montageNein",
+  betreff:"Montage hat sich stabilisiert",
+  koerper:`Kurz zur Ergänzung meiner vorherigen Mail: Die Nacharbeitsquote in der Montage ist letzte Woche deutlich zurückgegangen. Ich denke, wir haben den Bogen raus.`,
+  signatur:"Beat Zwahlen\nProduktionsleiter",
+  muster:{prio:"B", aktion:"selbst", warum:"Steht im Widerspruch zur Kundenreklamation vom selben Morgen und zur eigenen Mail zwanzig Minuten früher. Eine Woche ist keine Trendwende."}},
+
+{ id:"montageNein", periode:3, von:"Ursula Gerber", adresse:"u.gerber@hebtec.ch", zeit:"07:58", widerspruch:"montageOk",
+  betreff:"Erneut Nacharbeit an Ihren Baugruppen nötig",
+  koerper:`Sehr geehrte Frau Keller
+
+Wir mussten diese Woche an 22 von 60 gelieferten Baugruppen nacharbeiten. Es ist die dritte Lieferung in Folge mit demselben Bild.
+
+Wir brauchen eine Aussage, was Sie ändern.`,
+  signatur:"Ursula Gerber\nHebtec AG",
+  muster:{prio:"A", aktion:"selbst", warum:"Dritte Lieferung in Folge mit demselben Mangel – und der Produktionsleiter meldet zur selben Zeit Entwarnung. Diese Diskrepanz ist der eigentliche Befund."}},
+
+{ id:"webinar", periode:4, stoerung:true, von:"Swissmem Academy", adresse:"academy@swissmem.ch", zeit:"Fr 10:02",
+  betreff:"Webinar: ERP-Auswahl im KMU – kostenlos, 45 Minuten",
+  koerper:`Erfahren Sie in 45 Minuten, worauf es bei der ERP-Auswahl ankommt. Nächster Termin in drei Wochen, Teilnahme kostenlos.`,
+  signatur:"Swissmem Academy",
+  muster:{prio:"C", aktion:"ablegen", warum:"Thematisch passend, aber ohne Frist und ohne Entscheidungsbedarf. Gegebenenfalls an den Leiter AVOR weiterleiten."}},
+
+{ id:"ktg", periode:5, von:"Helvetia Kollektiv-Taggeld", adresse:"leistungen@helvetia-ktg.ch", zeit:"Fr 15:30",
+  betreff:"Fehlende Arztzeugnisse Schadenfall 44-2019",
+  koerper:`Sehr geehrte Damen und Herren
+
+Für den laufenden Schadenfall fehlen uns die Arztzeugnisse ab Woche vier. Ohne diese Unterlagen können wir die Taggeldleistungen nicht weiter ausrichten.
+
+Wir bitten um Zustellung innert zehn Tagen.`,
+  signatur:"Helvetia, Leistungsabteilung",
+  muster:{prio:"B", aktion:"delegieren", warum:"Frist und finanzielle Folge, aber reine Administration. An die Personaladministration mit klarer Frist."}},
+
+{ id:"abwerbung", periode:6, von:"Marco Iseli", adresse:"m.iseli@baertschi-metalltech.ch", zeit:"07:15",
+  betreff:"Steinmann ruft unsere Leute direkt an",
+  koerper:`Andrea
+
+Drei von meinen Leuten wurden diese Woche auf dem Privathandy von einem Personalvermittler angerufen, der für Steinmann sucht. Einer hat mir das erzählt, weil er es unanständig fand.
+
+Ich melde es, damit du es weisst, bevor der Nächste kündigt.`,
+  signatur:"Marco Iseli\nTeamleiter Spätschicht Schweisserei",
+  muster:{prio:"B", aktion:"selbst", warum:"Kein Notfall, aber ein Frühwarnsignal aus dem Engpassbereich – und ein Hinweis darauf, dass die Bindung der Leute jetzt zählt, nicht nach der nächsten Kündigung."}},
+
+{ id:"revision", periode:7, von:"Balmer Treuhand AG", adresse:"mandate@balmer-treuhand.ch", zeit:"Do 11:20",
+  betreff:"Terminplanung Jahresabschlussprüfung",
+  koerper:`Sehr geehrte Frau Keller
+
+Für die Abschlussprüfung schlagen wir die Kalenderwochen 6 und 7 vor. Bitte bestätigen Sie bis Ende Monat und stellen Sie sicher, dass die Inventurunterlagen bereitliegen.`,
+  signatur:"Balmer Treuhand AG",
+  muster:{prio:"C", aktion:"delegieren", warum:"Routine mit komfortabler Frist. An die Finanzabteilung, Termin bestätigen, fertig."}},
+
+{ id:"praktikum", periode:7, stoerung:true, von:"Jonas Widmer", adresse:"jonas.widmer@gmx.ch", zeit:"Mi 22:14",
+  betreff:"Anfrage Schnupperlehre Polymechaniker",
+  koerper:`Guten Tag
+
+Ich bin in der zweiten Sek und interessiere mich für den Beruf Polymechaniker. Gibt es bei Ihnen die Möglichkeit für eine Schnupperlehre?`,
+  signatur:"Jonas Widmer",
+  muster:{prio:"C", aktion:"delegieren", warum:"Sympathisch und ohne Frist. Gehört zur Berufsbildnerin – und sollte dort auch tatsächlich ankommen."}}
+];
+
+const AKTIONEN = [
+  {id:"selbst", label:"Selbst erledigen"},
+  {id:"delegieren", label:"Delegieren"},
+  {id:"termin", label:"Termin setzen"},
+  {id:"ablegen", label:"Kenntnis, ablegen"}
+];
+const AKTIONSNAME = Object.fromEntries(AKTIONEN.map(a=>[a.id,a.label]));
+
+/* Postkorb der laufenden Periode: Ereignismails + Zusatzpost, nach Zeit sortiert */
+function postkorbListe(){
+  const p = S.periode;
+  const aus = EREIGNISSE.filter(e=>e.periode===p).map(e=>({
+    id:e.id, ereignis:true, von:e.von, adresse:e.adresse, zeit:e.zeit,
+    betreff:e.titel, koerper:e.mail, signatur:e.signatur, muster:e.muster, markiert:!!e.markiert
+  }));
+  const zus = ZUSATZPOST.filter(z=>z.periode===p).map(z=>({
+    id:z.id, ereignis:false, von:z.von, adresse:z.adresse, zeit:z.zeit,
+    betreff:z.betreff, koerper:z.koerper, signatur:z.signatur, muster:z.muster,
+    stoerung:!!z.stoerung, widerspruch:z.widerspruch, markiert:false
+  }));
+  const alle = aus.concat(zus);
+  const rang = t => (t.startsWith("Mi")?0:t.startsWith("Do")?1:t.startsWith("Fr")?2:10) * 10000
+                    + parseInt(t.replace(/\D/g,"").slice(-4)||"0",10);
+  return alle.sort((a,b)=>rang(a.zeit)-rang(b.zeit));
+}
+
+/* ===================================================================
+   4) SIMULATION
+   =================================================================== */
+function produktivePersonen(){const p=S.personal;return p.laser+p.abkanten+p.schweissen+p.oberflaechen+p.montage;}
+function gesamtPersonal(){return produktivePersonen()+S.verwaltung+S.lernende;}
+function offeneStellen(){let n=0;for(const b in SOLL)n+=Math.max(0,SOLL[b]-S.personal[b]);return n;}
+function kapazitaet(){
+  const anwesenheit = 1-(S.absenzquote-0.034);
+  let roh = produktivePersonen()*K.stundenProMaQuartal*anwesenheit;
+  if(S.zweiSchicht) roh*=1.18;
+  const schweiss = S.personal.schweissen*K.stundenProMaQuartal*anwesenheit*(S.zweiSchicht?1.10:1);
+  return Math.min(roh, schweiss/K.anteilSchweissen);
+}
+function nachfrage(f){
+  const preiseffekt = 1+K.preiselastizitaet*(S.preisindex-1);
+  const marketing = 1+(S.marketingQuartal-99000)/99000*0.05;
+  return 31000*f*Math.max(0.3,preiseffekt)*S.reputation*marketing;
+}
+
+function personalPeriode(m){
+  S.inEinarbeitung.forEach(e=>e.rest--);
+  const fertig = S.inEinarbeitung.filter(e=>e.rest<=0);
+  fertig.forEach(e=>S.personal[e.bereich]++);
+  S.inEinarbeitung = S.inEinarbeitung.filter(e=>e.rest>0);
+  if(fertig.length) m.push({art:"personal", text:fertig.length+" eingearbeitete Person"+(fertig.length>1?"en sind":" ist")+" jetzt voll einsatzfähig."});
+
+  let dm = 0;
+  dm -= Math.max(0,S.ueberzeitSaldo-3500)/45000;
+  dm += (S.lohnindex-1)*0.9;
+  dm += (S.weiterbildungQuartal-24000)/24000*0.02;
+  dm -= Math.max(0,S.auslastung-0.95)*0.6;
+  dm += S.motivationBonus;
+  S.motivation = grenze(S.motivation + dm*0.6 + (0.72-S.motivation)*0.10, 0.30, 0.96);
+  S.motivationBonus = 0;
+
+  S.absenzquote = grenze(0.028+(0.80-S.motivation)*0.075, 0.020, 0.095);
+  S.fluktuation = grenze(0.070+(0.80-S.motivation)*0.30, 0.040, 0.260);
+
+  const abgang = Math.round(produktivePersonen()*S.fluktuation/4);
+  const bereiche = Object.keys(S.personal);
+  for(let i=0;i<abgang;i++){
+    bereiche.sort((a,b)=>S.personal[b]-S.personal[a]);
+    if(S.personal[bereiche[0]]>3) S.personal[bereiche[0]]--;
+  }
+  if(abgang>0){
+    m.push({art:abgang>3?"schlecht":"personal", text:abgang+" Mitarbeitende haben den Betrieb verlassen (Fluktuation "+pct(S.fluktuation)+" pro Jahr). Wissen geht mit."});
+    S.knowhow -= abgang*0.012;
+  }
+
+  const offen = offeneStellen();
+  const ausschr = Math.min(S.ausschreibungen, offen);
+  if(ausschr>0){
+    S.einmalkosten += ausschr*K.kostenAusschreibung;
+    const quote = grenze(0.30+(S.lohnindex-1)*4+(S.motivation-0.72)*0.8+(S.rekrutierungsbonus||0), 0.05, 0.95);
+    const treffer = Math.round(ausschr*quote);
+    for(let i=0;i<treffer;i++){
+      let ziel=null, luecke=0;
+      for(const b in SOLL){
+        const l = SOLL[b]-S.personal[b]-S.inEinarbeitung.filter(e=>e.bereich===b).length;
+        if(l>luecke){luecke=l; ziel=b;}
+      }
+      if(ziel) S.inEinarbeitung.push({bereich:ziel, rest:K.einarbeitungQuartale});
+    }
+    m.push(treffer>0
+      ? {art:"gut", text:treffer+" Zusage"+(treffer>1?"n":"")+" bei "+ausschr+" ausgeschriebenen Stellen (Erfolgsquote "+pct(quote,0)+"). Einarbeitung: zwei Quartale."}
+      : {art:"schlecht", text:"Keine Zusage auf "+ausschr+" ausgeschriebene Stellen. Erfolgsquote nur "+pct(quote,0)+" – Lohnniveau und Ruf als Arbeitgeber wirken hier direkt."});
+    S.rekrutierungsbonus = 0;
+  }
+
+  S.knowhow = grenze(S.knowhow+0.004+(S.weiterbildungQuartal-24000)/24000*0.012+S.knowhowBonus, 0.70, 1.20);
+  S.knowhowBonus = 0;
+  S.ausschussEffektiv = grenze(S.ausschuss+(1-S.knowhow)*0.06+S.inEinarbeitung.length*0.002, 0.005, 0.14);
+
+  if(S.auslastung>0.90) S.ueberzeitSaldo += (S.auslastung-0.90)*kapazitaet()*0.55;
+  else S.ueberzeitSaldo = Math.max(0, S.ueberzeitSaldo-(0.90-S.auslastung)*kapazitaet()*0.35);
+  let uzKosten = 0;
+  if(S.ueberzeitAuszahlen && S.ueberzeitSaldo>0){
+    uzKosten = S.ueberzeitSaldo*K.ueberzeitAnsatz;
+    m.push({art:"personal", text:"Überzeit im Umfang von "+fmt(S.ueberzeitSaldo)+" Stunden ausbezahlt: CHF "+fmt(uzKosten)+"."});
+    S.ueberzeitSaldo = 0; S.ueberzeitAuszahlen = false;
+  }
+  if(S.ueberzeitSaldo>6500) m.push({art:"schlecht", text:"Überzeitsaldo "+fmt(S.ueberzeitSaldo)+" Stunden – eine Verbindlichkeit gegenüber den Mitarbeitenden, die auf die Motivation drückt."});
+  if(S.motivation<0.55) m.push({art:"schlecht", text:"Die Stimmung ist schlecht (Motivationsindex "+pct(S.motivation,0)+"). Absenzen und Fluktuation steigen weiter."});
+  if(S.motivation>0.85) m.push({art:"gut", text:"Die Stimmung ist gut (Motivationsindex "+pct(S.motivation,0)+")."});
+  return uzKosten;
+}
+
+function periodeRechnen(){
+  const m = [];
+  const uzKosten = personalPeriode(m);
+  const kap = kapazitaet();
+  const nach = nachfrage(MARKT[S.periode]);
+  const verkaufte = Math.min(kap,nach);
+  const auslastung = kap>0 ? verkaufte/kap : 0;
+
+  let tt = 0.96 - Math.max(0,auslastung-0.88)*1.2 - (S.ausschussEffektiv-0.024)*2
+           + (S.motivation-0.72)*0.18 + (S.termintreueBonus||0);
+  tt = grenze(tt,0.66,0.99);
+  S.termintreue = tt; S.auslastung = auslastung;
+
+  const umsatz = verkaufte*K.erloesProStunde*S.preisindex;
+  const material = verkaufte*K.materialProStunde*(1-(S.materialrabatt||0));
+  const personal = gesamtPersonal()*K.lohnkostenProMaJahr*S.lohnindex/4 + (S.zweiSchicht?95000:0) + uzKosten + S.weiterbildungQuartal;
+  const uebrig = K.betriebsaufwandQuartal + S.energiezuschlag + S.zusatzFixkosten + (S.marketingQuartal-99000) + S.einmalkosten;
+  const abschreibung = K.abschreibungQuartal + S.zusatzAbschreibung;
+  const zinsen = (S.hypothek*K.zinsHypothek + S.darlehen*K.zinsDarlehen + Math.max(0,S.kontokorrent)*K.zinsKontokorrent)/4;
+  const ebitda = umsatz-material-personal-uebrig;
+  const ebit = ebitda-abschreibung;
+  const vorSteuern = ebit-zinsen;
+  const steuern = vorSteuern>0 ? vorSteuern*K.steuersatz : 0;
+  const gewinn = vorSteuern-steuern;
+  S.einmalkosten = 0;
+
+  const fordNeu = umsatz*(S.zahlungszielTage/90);
+  const ein = S.forderungen + umsatz - fordNeu;
+  const aus = material+personal+uebrig+zinsen+steuern+K.amortisationQuartal;
+  S.forderungen = fordNeu;
+  S.kasse += ein-aus;
+  S.darlehen = Math.max(0,S.darlehen-K.amortisationQuartal);
+
+  if(S.kasse<150000){
+    S.kontokorrent += 150000-S.kasse; S.kasse = 150000;
+    if(S.kontokorrent>K.kkLimite) m.push({art:"schlecht", text:"Die Kontokorrentlimite von CHF 2'000'000 ist überschritten. Die Bank verlangt ein Gespräch."});
+    else if(S.kontokorrent>K.kkLimite*0.8) m.push({art:"schlecht", text:"Der Kontokorrent ist zu über 80 % beansprucht."});
+  } else if(S.kasse>900000 && S.kontokorrent>0){
+    const t = Math.min(S.kasse-600000,S.kontokorrent);
+    S.kontokorrent -= t; S.kasse -= t;
+  }
+
+  S.anlagevermoegen -= abschreibung;
+  S.eigenkapital += gewinn;
+  S.reputation = grenze(S.reputation+(tt-0.93)*0.9, 0.82, 1.18);
+
+  if(auslastung>0.97) m.push({art:"schlecht", text:"Die Werkstatt läuft am Anschlag. Termintreue "+pct(tt,0)+", der Überzeitsaldo wächst."});
+  if(auslastung<0.72) m.push({art:"schlecht", text:"Nur "+pct(auslastung,0)+" Auslastung. Die Fixkosten verteilen sich auf zu wenige Stunden."});
+  if(nach>kap*1.05) m.push({art:"", text:fmt(nach-kap)+" Stunden Nachfrage konnten nicht bedient werden und gingen an den Wettbewerb."});
+  if(gewinn<0) m.push({art:"schlecht", text:"Quartalsverlust von CHF "+fmt(Math.abs(gewinn))+"."});
+  if(gewinn>250000) m.push({art:"gut", text:"Solides Quartal mit CHF "+fmt(gewinn)+" Gewinn."});
+  if(offeneStellen()>0) m.push({art:"", text:offeneStellen()+" Stellen unbesetzt, davon "+Math.max(0,SOLL.schweissen-S.personal.schweissen)+" in der Schweisserei – dem Engpass des Betriebs."});
+
+  S.meldungen = m;
+  S.ergebnisse.push({quartal:QUARTALE[S.periode], auslastung, umsatz, material, personal, uebrig,
+    ebitda, abschreibung, ebit, zinsen, gewinn, kasse:S.kasse, kontokorrent:S.kontokorrent,
+    eigenkapital:S.eigenkapital, termintreue:tt, motivation:S.motivation, fluktuation:S.fluktuation,
+    absenzquote:S.absenzquote, ueberzeit:S.ueberzeitSaldo, personen:gesamtPersonal()});
+}
+
+/* ===================================================================
+   5) POSTKORB-ZUSTAND
+   =================================================================== */
+let mailGewaehlt = null;
+let mailFilter = {ungelesen:false, markiert:false, offen:false, text:""};
+let uhrLaeuft = false, restSekunden = K.postkorbMinuten*60, uhrHandle = null;
+
+function pkFertig(id){
+  const b = S.postkorb[id];
+  return !!(b && b.prio && b.aktion && (b.notiz||"").trim().length>=25);
+}
+function pkStand(){
+  const liste = postkorbListe();
+  return {total:liste.length, fertig:liste.filter(n=>pkFertig(n.id)).length,
+          ungelesen:liste.filter(n=>!S.gelesen.includes(n.id) && !S.archiviert.includes(n.id)).length};
+}
+function initialen(n){return n.split(" ").filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();}
+
+/* ===================================================================
+   6) REITER
+   =================================================================== */
+function bilanzsumme(){return S.kasse+S.forderungen+S.vorraete+S.uebrigesUV+S.anlagevermoegen;}
+function kurzfristigesFK(){return S.verbindlichkeiten+S.kontokorrent+S.uebrigesKFK;}
+function letzte(){return S.ergebnisse[S.ergebnisse.length-1]||null;}
+function offeneEreignisse(){return EREIGNISSE.filter(e=>e.periode===S.periode && !S.erledigt.includes(e.id));}
+function alleEntschieden(){
+  return offeneEreignisse().every(ev=>{
+    const w = S.wahl[ev.id];
+    return w && w.option!==undefined && (w.begruendung||"").trim().length>=40;
+  });
+}
+function balken(w,hoch=true){
+  const p = Math.round(grenze(w,0,1)*100);
+  const k = hoch ? (p>=75?"":(p>=55?"mittel":"tief")) : (p<=35?"":(p<=60?"mittel":"tief"));
+  return `<div class="balken"><i class="${k}" style="width:${p}%"></i></div>`;
+}
+
+const REITER = {
+
+lage(){
+  const e = letzte(), st = pkStand();
+  let h = `<h2>Lage im ${QUARTALE[S.periode]}</h2>`;
+  if(!e) h += `<p class="hinweis">Sie sind Andrea Keller, Leiterin Auftragsabwicklung und Mitglied der Geschäftsleitung. Es ist Montag, 8 Uhr. Das letzte Jahr schloss mit CHF 27.5 Mio. Umsatz und 3.3 % EBIT-Marge. Die Firma ist gesund, aber nicht in Ordnung: vier offene Schweisserstellen, 4'850 Stunden Überzeit, 11.2 % Fluktuation.<br><br>Jedes Quartal beginnt im Postkorb. Dort treffen die Entscheide als E-Mail ein – zwischen Nachrichten, die keine sind.</p>`;
+  if(S.meldungen.length){
+    h += `<h3>Was im letzten Quartal geschah</h3>`;
+    h += S.meldungen.map(m=>`<div class="meldung ${m.art}">${m.text}</div>`).join("");
+  }
+  if(!S.beendet){
+    h += `<h3>Diese Periode</h3>`;
+    h += `<div class="meldung ${st.fertig===st.total?"gut":""}">Postkorb: ${st.fertig} von ${st.total} Nachrichten bearbeitet, ${st.ungelesen} ungelesen.</div>`;
+    const offen = offeneEreignisse();
+    offen.forEach(ev=>{
+      const w = S.wahl[ev.id]||{};
+      const ok = w.option!==undefined && (w.begruendung||"").trim().length>=40;
+      h += `<div class="meldung ${ok?"gut":(ev.art==="fuehrung"?"personal":"")}"><strong>${ev.titel}</strong><br>
+        <span style="color:var(--stahl);font-size:13px">${ev.hkb}${ok?" · entschieden":" · offen"}</span></div>`;
+    });
+    h += `<div class="knopfleiste">
+      <button class="knopf" data-gehe="postkorb">Postkorb öffnen</button>
+      <button class="knopf neben" data-gehe="entscheide">Zu den Entscheiden</button></div>`;
+  } else {
+    h += `<h3>Acht Quartale abgeschlossen</h3><p class="hinweis">Das Journal enthält jeden Entscheid und jede Postkorb-Begründung – Material für das persönliche Portfolio nach Prüfungsteil 5.</p>
+    <div class="knopfleiste"><button class="knopf" data-gehe="journal">Journal öffnen</button></div>`;
+  }
+  return h;
+},
+
+postkorb(){
+  const st = pkStand();
+  return `<div id="postfach">
+    <div class="werkzeugleiste">
+      <button class="wz" disabled><svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 8l8 5 8-5"/></svg>Abrufen</button>
+      <button class="wz" disabled><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Verfassen</button>
+      <div class="trenner"></div>
+      <button class="wz" id="wzArchiv" disabled><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3z"/><path d="M3 7l2-3h14l2 3M10 12h4"/></svg>Archivieren</button>
+      <button class="wz" id="wzAuswertung"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg>Auswertung</button>
+      <div class="uhr" id="uhr">Prüfungsmodus <b id="restzeit">${String(Math.floor(restSekunden/60)).padStart(2,"0")}:${String(restSekunden%60).padStart(2,"0")}</b>
+        <button class="pille" id="uhrKnopf">${uhrLaeuft?"Anhalten":"Starten"}</button></div>
+    </div>
+    <div class="schnellfilter">
+      <button class="pille" id="fUngelesen" aria-pressed="${mailFilter.ungelesen}">Ungelesen</button>
+      <button class="pille" id="fMarkiert" aria-pressed="${mailFilter.markiert}">Markiert</button>
+      <button class="pille" id="fOffen" aria-pressed="${mailFilter.offen}">Unbearbeitet</button>
+      <input class="suche" id="suche" type="search" placeholder="Nachrichten durchsuchen" value="${mailFilter.text}">
+    </div>
+    <div class="fenster">
+      <aside class="ordner">
+        <div class="konto"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h16v14H4z"/><path d="M4 8l8 5 8-5"/></svg>
+          <span>a.keller@baertschi-metalltech.ch<small>Bärtschi Metalltech AG</small></span></div>
+        <div class="ordnerzeile aktiv"><svg viewBox="0 0 24 24"><path d="M4 13h4l2 3h4l2-3h4"/><path d="M4 13l2-8h12l2 8v6H4z"/></svg>Posteingang<span class="anzahl" id="ordnerUngelesen">${st.ungelesen||""}</span></div>
+        <div class="ordnerzeile"><svg viewBox="0 0 24 24"><path d="M4 6h16v12H4z"/><path d="M8 10h8M8 14h5"/></svg>Entwürfe<span class="anzahl">2</span></div>
+        <div class="ordnerzeile"><svg viewBox="0 0 24 24"><path d="M4 12l16-7-7 16-2-7z"/></svg>Gesendet</div>
+        <div class="ordnerzeile"><svg viewBox="0 0 24 24"><path d="M3 7h18v13H3z"/><path d="M3 7l2-3h14l2 3"/></svg>Archiv<span class="anzahl" id="ordnerArchiv">${S.archiviert.length||""}</span></div>
+        <div class="ordnerzeile"><svg viewBox="0 0 24 24"><path d="M5 7h14l-1 13H6z"/><path d="M9 7V5h6v2"/></svg>Papierkorb</div>
+      </aside>
+      <div class="rechts">
+        <div class="liste"><table class="m"><thead><tr>
+          <th style="width:24px">★</th><th>Betreff</th><th style="width:180px">Von</th><th class="datum">Erhalten</th>
+        </tr></thead><tbody id="mailListe"></tbody></table></div>
+        <div class="griff"></div>
+        <div class="lesen" id="mailLesen"><div class="leerfenster">Wählen Sie eine Nachricht aus.</div></div>
+      </div>
+    </div>
+    <div class="statusleiste">
+      <span id="mailStatus"></span>
+      <span class="fortschritt">
+        <span id="mailFortschritt"></span>
+        <span class="leiste"><i id="mailBalken" style="width:0%"></i></span>
+      </span>
+    </div>
+  </div>`;
+},
+
+entscheide(){
+  if(S.beendet) return `<h2>Entscheide</h2><div class="leer">Die Simulation ist abgeschlossen.</div>`;
+  const offen = offeneEreignisse();
+  if(!offen.length) return `<h2>Entscheide</h2><div class="leer">Kein Ereignis in diesem Quartal.</div>
+    <div class="knopfleiste"><button class="knopf" id="abschluss">Periode abschliessen</button></div>`;
+  let h = `<h2>Entscheide im ${QUARTALE[S.periode]}</h2>
+    <p class="hinweis">Jeder Entscheid braucht eine Begründung von mindestens 40 Zeichen. Bewertet wird die Begründung, nicht der Spielstand.</p>`;
+  h += offen.map(ev=>{
+    const w = S.wahl[ev.id]||{};
+    const pk = S.postkorb[ev.id];
+    return `<div class="karte">
+      <div class="kartenkopf ${ev.art==="fuehrung"?"fuehrung":""}">
+        <div class="titel">${ev.titel}</div><div class="hkb">${ev.hkb}</div></div>
+      <div class="rumpf">
+        ${pk&&pk.prio?`<div class="vermerk">Im Postkorb eingestuft als <strong>Priorität ${pk.prio} · ${AKTIONSNAME[pk.aktion]||"ohne Massnahme"}</strong>${pk.notiz?` – «${pk.notiz.trim()}»`:""}</div>`:""}
+        <blockquote class="zitat">${ev.mail.split("\n\n").slice(1).join("<br><br>")}<cite>${ev.von}, ${ev.zeit}</cite></blockquote>
+        ${ev.lage?`<p class="lage">${ev.lage}</p>`:""}
+        <div class="optionen">
+        ${ev.optionen.map((o,i)=>`<label class="opt ${w.option===i?"gewaehlt":""}">
+          <input type="radio" name="opt_${ev.id}" value="${i}" ${w.option===i?"checked":""}>
+          <span><strong>${o.label}</strong><span class="folge">${o.folge}</span></span></label>`).join("")}
+        </div>
+        <div class="begruendung">
+          <label for="b_${ev.id}">${ev.art==="fuehrung"
+            ? "Begründung: Was leitet Sie – und wie erklären Sie den Entscheid dem Team?"
+            : "Begründung: Worauf stützen Sie den Entscheid?"}</label>
+          <textarea id="b_${ev.id}" data-b="${ev.id}" placeholder="Welche Zahlen, Risiken und Anspruchsgruppen haben Sie abgewogen?">${w.begruendung||""}</textarea>
+          <div class="zaehler" id="z_${ev.id}"></div>
+        </div>
+      </div></div>`;
+  }).join("");
+  h += `<div class="knopfleiste"><button class="knopf" id="abschluss">Periode abschliessen</button>
+        <span class="status" id="abschlussStatus"></span></div>`;
+  return h;
+},
+
+fuehrung(){
+  const p = S.personal;
+  const einarb = {}; S.inEinarbeitung.forEach(e=>einarb[e.bereich]=(einarb[e.bereich]||0)+1);
+  const zeile = (name,key)=>`<tr class="${SOLL[key]-p[key]>0?"knapp":""}"><td>${name}</td><td class="z">${p[key]}</td><td class="z">${SOLL[key]}</td><td class="z">${einarb[key]||"–"}</td></tr>`;
+  let h = `<h2>Führung und Personal</h2>
+  <p class="hinweis">Motivation steuert Absenzen, Fluktuation, Qualität, Termintreue und die Erfolgsquote bei Rekrutierungen. Jede Wirkung ist im Modell nachvollziehbar hinterlegt.</p>
+  <div class="tabellen">
+    <table class="d"><caption>Stellenplan Produktion</caption>
+      <tr><th>Bereich</th><th class="z">Ist</th><th class="z">Soll</th><th class="z">in Einarbeitung</th></tr>
+      ${zeile("Zuschnitt und Laser","laser")}${zeile("Abkanten und Umformen","abkanten")}
+      ${zeile("Schweissen","schweissen")}${zeile("Oberflächen","oberflaechen")}${zeile("Montage","montage")}
+      <tr><td>Verwaltung, Verkauf, Konstruktion</td><td class="z">${S.verwaltung}</td><td class="z">33</td><td class="z">–</td></tr>
+      <tr><td>Lernende</td><td class="z">${S.lernende}</td><td class="z">6</td><td class="z">–</td></tr>
+      <tr class="summe"><td>Total</td><td class="z">${gesamtPersonal()}</td><td class="z"></td><td class="z"></td></tr>
+    </table>
+    <table class="d"><caption>Führungsgrössen</caption>
+      <tr><td>Motivationsindex</td><td class="z">${pct(S.motivation,0)}${balken(S.motivation)}</td></tr>
+      <tr><td>Fluktuation pro Jahr</td><td class="z">${pct(S.fluktuation)}${balken(S.fluktuation/0.26,false)}</td></tr>
+      <tr><td>Absenzquote</td><td class="z">${pct(S.absenzquote)}${balken(S.absenzquote/0.095,false)}</td></tr>
+      <tr><td>Überzeitsaldo</td><td class="z">${fmt(S.ueberzeitSaldo)} h${balken(S.ueberzeitSaldo/9000,false)}</td></tr>
+      <tr><td>Know-how-Index</td><td class="z">${pct(S.knowhow,0)}${balken((S.knowhow-0.7)/0.5)}</td></tr>
+      <tr><td>Lohnindex gegenüber Start</td><td class="z">${pct(S.lohnindex,1)}</td></tr>
+      <tr><td>Ausschuss und Nacharbeit</td><td class="z">${pct(S.ausschussEffektiv||S.ausschuss)}</td></tr>
+    </table>
+  </div>
+  <h3>Führungsinstrumente für die kommende Periode</h3>
+  <div class="regler">
+    <div class="feld"><label for="lohn">Lohnniveau</label>
+      <div class="erklaerung">Wirkt auf Motivation, Fluktuation und darauf, ob Bewerbende zusagen. Lohnsumme rund CHF 9.17 Mio. pro Jahr.</div>
+      <input type="range" id="lohn" min="96" max="112" step="1" value="${Math.round(S.lohnindex*100)}">
+      <div class="anzeige" id="lohnWert">${(S.lohnindex*100).toFixed(0)} %</div><div class="kosten" id="lohnKosten"></div></div>
+    <div class="feld"><label for="weiterbildung">Weiterbildung pro Quartal</label>
+      <div class="erklaerung">Basis CHF 24'000. Hebt den Know-how-Index, senkt den Ausschuss.</div>
+      <input type="number" id="weiterbildung" min="0" max="150000" step="6000" value="${S.weiterbildungQuartal}"></div>
+    <div class="feld"><label for="ausschreibungen">Stellen ausschreiben</label>
+      <div class="erklaerung">Je Ausschreibung CHF 8'500. Neue Leute sind erst nach zwei Quartalen voll produktiv. Aktuell unbesetzt: ${offeneStellen()}.</div>
+      <input type="number" id="ausschreibungen" min="0" max="8" step="1" value="${S.ausschreibungen}"></div>
+    <div class="feld"><label>Überzeit</label>
+      <div class="erklaerung">Saldo ${fmt(S.ueberzeitSaldo)} Stunden, Auszahlung zu CHF ${K.ueberzeitAnsatz} je Stunde.</div>
+      <label class="schalter"><input type="checkbox" id="ueberzeit" ${S.ueberzeitAuszahlen?"checked":""}>
+        <span>Saldo auszahlen – rund CHF ${fmt(S.ueberzeitSaldo*K.ueberzeitAnsatz)}</span></label></div>
+  </div>`;
+  if(S.ergebnisse.length){
+    h += `<h3>Verlauf</h3><table class="d">
+      <tr><th>Quartal</th><th class="z">Motivation</th><th class="z">Fluktuation</th><th class="z">Absenzen</th><th class="z">Überzeit</th><th class="z">Bestand</th></tr>
+      ${S.ergebnisse.map(r=>`<tr><td>${r.quartal}</td><td class="z">${pct(r.motivation,0)}</td><td class="z">${pct(r.fluktuation)}</td>
+        <td class="z">${pct(r.absenzquote)}</td><td class="z">${fmt(r.ueberzeit)} h</td><td class="z">${r.personen}</td></tr>`).join("")}</table>`;
+  }
+  return h;
+},
+
+steuerung(){
+  return `<h2>Betriebliche Steuergrössen</h2>
+  <p class="hinweis">Wirken ab der nächsten Periode. Die Führungsinstrumente stehen unter «Führung».</p>
+  <div class="regler">
+    <div class="feld"><label for="preis">Preisniveau</label>
+      <div class="erklaerung">100 % entspricht der Kalkulation mit 8 % Gewinnzuschlag. Nachfrageelastizität −1.4.</div>
+      <input type="range" id="preis" min="88" max="112" step="1" value="${Math.round(S.preisindex*100)}">
+      <div class="anzeige" id="preisWert">${Math.round(S.preisindex*100)} %</div></div>
+    <div class="feld"><label for="ziel">Zahlungsziel</label>
+      <div class="erklaerung">Bestimmt den Forderungsbestand.</div>
+      <select id="ziel">
+        <option value="30" ${S.zahlungszielTage<=35?"selected":""}>30 Tage mit Skonto</option>
+        <option value="45" ${S.zahlungszielTage>35&&S.zahlungszielTage<=50?"selected":""}>45 Tage</option>
+        <option value="60" ${S.zahlungszielTage>50?"selected":""}>60 Tage</option></select></div>
+    <div class="feld"><label for="schicht">Schichtmodell</label>
+      <div class="erklaerung">Zweischichtbetrieb: +18 % Kapazität, rund CHF 95'000 Zuschläge pro Quartal.</div>
+      <select id="schicht">
+        <option value="0" ${!S.zweiSchicht?"selected":""}>Einschichtbetrieb</option>
+        <option value="1" ${S.zweiSchicht?"selected":""}>Zweischichtbetrieb</option></select></div>
+    <div class="feld"><label for="marketing">Marketingbudget pro Quartal</label>
+      <div class="erklaerung">Basis CHF 99'000. Wirkt schwach – kein Ersatz für Preis und Termintreue.</div>
+      <input type="number" id="marketing" min="0" max="400000" step="10000" value="${S.marketingQuartal}"></div>
+  </div>
+  <div class="knopfleiste"><button class="knopf neben" id="abschlussZwei">Periode abschliessen</button></div>`;
+},
+
+finanzen(){
+  const e = letzte(), bs = bilanzsumme();
+  let h = `<h2>Finanzen</h2><div class="tabellen">
+  <table class="d"><caption>Bilanz per Ende ${S.periode>0?QUARTALE[S.periode-1]:"20X4"}</caption>
+    <tr><td>Flüssige Mittel</td><td class="z">${fmt(S.kasse)}</td></tr>
+    <tr><td>Forderungen aus L+L</td><td class="z">${fmt(S.forderungen)}</td></tr>
+    <tr><td>Vorräte</td><td class="z">${fmt(S.vorraete)}</td></tr>
+    <tr><td>Übriges Umlaufvermögen</td><td class="z">${fmt(S.uebrigesUV)}</td></tr>
+    <tr><td>Anlagevermögen</td><td class="z">${fmt(S.anlagevermoegen)}</td></tr>
+    <tr class="summe"><td>Total Aktiven</td><td class="z">${fmt(bs)}</td></tr>
+    <tr><td>Verbindlichkeiten aus L+L</td><td class="z">${fmt(S.verbindlichkeiten)}</td></tr>
+    <tr><td>Kontokorrent</td><td class="z">${fmt(S.kontokorrent)}</td></tr>
+    <tr><td>Übriges kurzfristiges FK</td><td class="z">${fmt(S.uebrigesKFK)}</td></tr>
+    <tr><td>Hypothek und Darlehen</td><td class="z">${fmt(S.hypothek+S.darlehen)}</td></tr>
+    <tr><td>Langfristige Rückstellungen</td><td class="z">${fmt(S.langfrRueckstellungen)}</td></tr>
+    <tr><td>Eigenkapital</td><td class="z">${fmt(S.eigenkapital)}</td></tr>
+    <tr class="summe"><td>Total Passiven</td><td class="z">${fmt(kurzfristigesFK()+S.hypothek+S.darlehen+S.langfrRueckstellungen+S.eigenkapital)}</td></tr>
+  </table>`;
+  h += e ? `<table class="d"><caption>Erfolgsrechnung ${e.quartal}</caption>
+    <tr><td>Nettoerlös</td><td class="z">${fmt(e.umsatz)}</td></tr>
+    <tr><td>Materialaufwand</td><td class="z">−${fmt(e.material)}</td></tr>
+    <tr><td>Personalaufwand</td><td class="z">−${fmt(e.personal)}</td></tr>
+    <tr><td>Übriger Betriebsaufwand</td><td class="z">−${fmt(e.uebrig)}</td></tr>
+    <tr class="zwischen"><td>EBITDA</td><td class="z">${fmt(e.ebitda)}</td></tr>
+    <tr><td>Abschreibungen</td><td class="z">−${fmt(e.abschreibung)}</td></tr>
+    <tr class="zwischen"><td>EBIT</td><td class="z">${fmt(e.ebit)}</td></tr>
+    <tr><td>Zinsaufwand</td><td class="z">−${fmt(e.zinsen)}</td></tr>
+    <tr class="summe"><td>Quartalsgewinn</td><td class="z">${fmt(e.gewinn)}</td></tr></table>`
+    : `<div class="leer">Die erste Erfolgsrechnung erscheint nach dem ersten Periodenabschluss.</div>`;
+  h += `</div>`;
+  if(S.ergebnisse.length){
+    h += `<h3>Verlauf</h3><table class="d">
+      <tr><th>Quartal</th><th class="z">Umsatz</th><th class="z">Personalaufwand</th><th class="z">EBIT</th><th class="z">Marge</th><th class="z">Gewinn</th><th class="z">Flüssige Mittel</th></tr>
+      ${S.ergebnisse.map(r=>`<tr><td>${r.quartal}</td><td class="z">${fmt(r.umsatz)}</td><td class="z">${fmt(r.personal)}</td>
+        <td class="z">${fmt(r.ebit)}</td><td class="z">${pct(r.ebit/r.umsatz)}</td><td class="z">${fmt(r.gewinn)}</td><td class="z">${fmt(r.kasse)}</td></tr>`).join("")}</table>`;
+  }
+  return h;
+},
+
+betrieb(){
+  const kap = kapazitaet();
+  let h = `<h2>Betrieb</h2><div class="tabellen">
+  <table class="d"><caption>Kapazität pro Quartal</caption>
+    <tr><td>Produktive Mitarbeitende</td><td class="z">${produktivePersonen()}</td></tr>
+    <tr><td>Verrechenbare Stunden je Person</td><td class="z">${K.stundenProMaQuartal}</td></tr>
+    <tr><td>Absenzquote</td><td class="z">${pct(S.absenzquote)}</td></tr>
+    <tr><td>Schichtmodell</td><td class="z">${S.zweiSchicht?"zwei Schichten":"eine Schicht"}</td></tr>
+    <tr class="summe"><td>Kapazität</td><td class="z">${fmt(kap)} h</td></tr>
+    <tr><td>Nachfrage ${QUARTALE[S.periode]}</td><td class="z">${fmt(nachfrage(MARKT[S.periode]))} h</td></tr></table>
+  <table class="d"><caption>Kostensätze der Kostenstellen</caption>
+    <tr><th>Kostenstelle</th><th class="z">Kostensatz</th><th class="z">Verkaufssatz</th></tr>
+    <tr><td>Konstruktion und AVOR</td><td class="z">119</td><td class="z">148</td></tr>
+    <tr><td>Zuschnitt und Laser</td><td class="z">102</td><td class="z">127</td></tr>
+    <tr><td>Abkanten</td><td class="z">86</td><td class="z">107</td></tr>
+    <tr><td>Schweissen</td><td class="z">82</td><td class="z">102</td></tr>
+    <tr><td>Oberflächen</td><td class="z">116</td><td class="z">145</td></tr>
+    <tr><td>Montage</td><td class="z">81</td><td class="z">101</td></tr></table></div>`;
+  if(SOLL.schweissen-S.personal.schweissen>0)
+    h += `<div class="meldung schlecht" style="margin-top:18px">Die Schweisserei stellt 23.4 % der Fertigungsstunden und ist der Engpass. Mit ${S.personal.schweissen} statt ${SOLL.schweissen} Personen ist der Durchsatz des gesamten Betriebs auf ${fmt(kap)} Stunden begrenzt.</div>`;
+  h += `<p class="hinweis" style="margin-top:16px">Verkaufssatz = Kostensatz × 1.155 für Verwaltungs- und Vertriebsgemeinkosten × 1.08 Gewinnzuschlag.</p>`;
+  return h;
+},
+
+journal(){
+  let h = `<h2>Entscheidungsjournal</h2>`;
+  if(!S.journal.length) return h+`<div class="leer">Noch keine Einträge.</div>`;
+  const f = S.journal.filter(j=>j.art==="fuehrung").length;
+  const p = S.journal.filter(j=>j.art==="postkorb").length;
+  h += `<p class="hinweis">${S.journal.length} Einträge: ${S.journal.length-p} Entscheide, davon ${f} aus der Mitarbeiterführung, sowie ${p} Postkorb-Einstufungen.</p>`;
+  h += S.journal.map(j=>`<div class="eintrag ${j.art==="fuehrung"?"c":(j.art==="postkorb"?"p":"")}">
+    <div class="kopf">${j.quartal} · ${j.hkb}</div>
+    <div class="was">${j.titel} → ${j.gewaehlt}</div>
+    <p class="warum">${j.begruendung}</p></div>`).join("");
+  h += `<div class="knopfleiste">
+    <button class="knopf neben" id="exportMd">Journal als Text herunterladen</button>
+    <button class="knopf neben" id="exportJson">Spielstand als JSON sichern</button></div>`;
+  return h;
+}
+};
+
+/* ===================================================================
+   7) POSTKORB-DARSTELLUNG
+   =================================================================== */
+function mailListeZeichnen(){
+  const ziel = document.getElementById("mailListe");
+  if(!ziel) return;
+  const zeilen = postkorbListe().filter(n=>{
+    if(S.archiviert.includes(n.id)) return false;
+    if(mailFilter.ungelesen && S.gelesen.includes(n.id)) return false;
+    if(mailFilter.markiert && !n.markiert) return false;
+    if(mailFilter.offen && pkFertig(n.id)) return false;
+    if(mailFilter.text){
+      const t = mailFilter.text.toLowerCase();
+      if(!(n.betreff+" "+n.von+" "+n.koerper).toLowerCase().includes(t)) return false;
+    }
+    return true;
+  });
+  ziel.innerHTML = zeilen.length ? zeilen.map(n=>{
+    const b = S.postkorb[n.id]||{};
+    const tags = (b.prio?`<span class="tag ${b.prio.toLowerCase()}">Priorität ${b.prio}</span>`:"")
+               + (n.ereignis?`<span class="tag e">Entscheid</span>`:"");
+    return `<tr data-id="${n.id}" class="${S.gelesen.includes(n.id)?"":"ungelesen"} ${mailGewaehlt===n.id?"gewaehlt":""} ${pkFertig(n.id)?"erledigt":""}">
+      <td class="stern ${n.markiert?"an":""}" data-stern="${n.id}">${n.markiert?"★":"☆"}</td>
+      <td>${tags}<span class="betreff">${n.betreff}</span></td>
+      <td class="von">${n.von}</td><td class="datum">${n.zeit}</td></tr>`;
+  }).join("") : `<tr><td colspan="4" style="padding:22px;text-align:center;color:var(--mgrau);white-space:normal">Keine Nachricht entspricht dem Filter.</td></tr>`;
+
+  ziel.querySelectorAll("tr[data-id]").forEach(tr=>{
+    tr.onclick = e=>{ if(!e.target.dataset.stern) mailOeffnen(tr.dataset.id); };
+  });
+  ziel.querySelectorAll("[data-stern]").forEach(td=>{
+    td.onclick = e=>{
+      e.stopPropagation();
+      const n = postkorbListe().find(x=>x.id===td.dataset.stern);
+      const q = EREIGNISSE.find(x=>x.id===n.id);
+      if(q) q.markiert = !q.markiert; else n.markiert = !n.markiert;
+      S.sterne = S.sterne||{}; S.sterne[n.id] = !S.sterne[n.id];
+      mailListeZeichnen();
+    };
+  });
+  mailStatusZeichnen();
+}
+
+function mailStatusZeichnen(){
+  const st = pkStand();
+  const s1 = document.getElementById("mailStatus");
+  if(!s1) return;
+  s1.textContent = `Posteingang ${QUARTALE[S.periode]} – ${st.total-S.archiviert.length} Nachrichten, ${st.ungelesen} ungelesen`;
+  document.getElementById("mailFortschritt").textContent = `${st.fertig} von ${st.total} bearbeitet`;
+  document.getElementById("mailBalken").style.width = (st.fertig/st.total*100)+"%";
+  document.getElementById("ordnerUngelesen").textContent = st.ungelesen||"";
+  document.getElementById("ordnerArchiv").textContent = S.archiviert.length||"";
+  const nav = document.querySelector('nav.app button[data-reiter="postkorb"] .punkt');
+  if(nav) nav.textContent = st.total-st.fertig;
+}
+
+function mailOeffnen(id){
+  mailGewaehlt = id;
+  if(!S.gelesen.includes(id)) S.gelesen.push(id);
+  const n = postkorbListe().find(x=>x.id===id);
+  const b = S.postkorb[id]||{};
+  document.getElementById("wzArchiv").disabled = false;
+  document.getElementById("mailLesen").innerHTML = `
+    <div class="betreffzeile">${n.betreff}</div>
+    <div class="kopfblock">
+      <div class="avatar">${initialen(n.von)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="zeile1"><span class="absender">${n.von}</span>
+          <span class="adresse">&lt;${n.adresse}&gt;</span><span class="wann">${n.zeit}</span></div>
+        <div class="an">an Andrea Keller</div></div></div>
+    <div class="koerper">${n.koerper}<div class="signatur">${n.signatur}</div></div>
+    ${n.ereignis?`<div class="entscheidhinweis">Diese Nachricht verlangt einen Entscheid. Stufen Sie sie hier ein – der Entscheid selbst wird im Reiter «Entscheide» getroffen.</div>`:""}
+    <div class="antwortleiste">
+      <button class="wz">Antworten</button><button class="wz">Weiterleiten</button>
+      ${n.ereignis?`<button class="wz" id="zumEntscheid" style="border-color:#6b3fa0;color:#6b3fa0">Zum Entscheid</button>`:""}
+    </div>
+    <div class="band">
+      <h4>Bearbeitung</h4>
+      <p class="h">Priorität, Massnahme und eine kurze Begründung. Bewertet wird die Begründung, nicht die Wahl.</p>
+      <div class="feldreihe">
+        <div class="feld"><span>Priorität</span><div class="wahlreihe">
+          ${["A","B","C"].map(p=>`<button class="wahl ${p.toLowerCase()}" data-prio="${p}" aria-pressed="${b.prio===p}">${p}</button>`).join("")}
+        </div></div>
+        <div class="feld"><span>Massnahme</span><div class="wahlreihe">
+          ${AKTIONEN.map(a=>`<button class="wahl" data-aktion="${a.id}" aria-pressed="${b.aktion===a.id}">${a.label}</button>`).join("")}
+        </div></div>
+      </div>
+      <span style="display:block;font-size:12px;color:var(--mgrau);margin-bottom:5px">Begründung</span>
+      <textarea id="pkNotiz" placeholder="Warum diese Priorität, warum diese Massnahme? Worauf stützen Sie sich?">${b.notiz||""}</textarea>
+      <div class="zaehler" id="pkZaehler"></div>
+    </div>`;
+
+  document.querySelectorAll("[data-prio]").forEach(k=>k.onclick=()=>{
+    S.postkorb[id] = S.postkorb[id]||{}; S.postkorb[id].prio = k.dataset.prio; mailOeffnen(id); mailListeZeichnen();
+  });
+  document.querySelectorAll("[data-aktion]").forEach(k=>k.onclick=()=>{
+    S.postkorb[id] = S.postkorb[id]||{}; S.postkorb[id].aktion = k.dataset.aktion; mailOeffnen(id); mailListeZeichnen();
+  });
+  const ze = document.getElementById("zumEntscheid");
+  if(ze) ze.onclick = ()=>{ aktiverReiter="entscheide"; zeichnen(); };
+  const t = document.getElementById("pkNotiz");
+  const zaehlen = ()=>{
+    const n2 = t.value.trim().length;
+    const z = document.getElementById("pkZaehler");
+    z.textContent = n2>=25 ? n2+" Zeichen" : "Noch "+(25-n2)+" Zeichen bis zur Mindestlänge";
+    z.className = "zaehler"+(n2>=25?"":" fehlt");
+  };
+  t.oninput = ()=>{ S.postkorb[id]=S.postkorb[id]||{}; S.postkorb[id].notiz=t.value; zaehlen(); mailListeZeichnen(); };
+  zaehlen();
+  mailListeZeichnen();
+}
+
+function uhrTicken(){
+  if(!uhrLaeuft) return;
+  restSekunden--;
+  const el = document.getElementById("restzeit");
+  if(el){
+    el.textContent = Math.floor(restSekunden/60)+":"+String(restSekunden%60).padStart(2,"0");
+    document.getElementById("uhr").classList.toggle("knapp", restSekunden<=300);
+  }
+  if(restSekunden<=0){ uhrLaeuft=false; postkorbAuswerten(true); }
+}
+if(!uhrHandle) uhrHandle = setInterval(uhrTicken,1000);
+
+/* ---------- Postkorb-Auswertung ---------- */
+function postkorbAuswerten(zeitAus){
+  uhrLaeuft = false;
+  const liste = postkorbListe();
+  const befunde = [];
+  const zaehl = {A:0,B:0,C:0};
+  liste.forEach(n=>{ const b=S.postkorb[n.id]; if(b&&b.prio) zaehl[b.prio]++; });
+
+  // Widersprüche
+  const paare = [];
+  liste.forEach(n=>{ if(n.widerspruch && !paare.some(p=>p.includes(n.id))) paare.push([n.id,n.widerspruch]); });
+  paare.forEach(([a,c])=>{
+    const ba = S.postkorb[a]||{}, bc = S.postkorb[c]||{};
+    const text = ((ba.notiz||"")+" "+(bc.notiz||"")).toLowerCase();
+    const erkannt = /widerspr|gegensatz|abweich|unterschied|klär|klaer|prüf|pruef|gegenüber|nachfrag/.test(text);
+    const beideHoch = ba.prio && bc.prio && ba.prio!=="C" && bc.prio!=="C";
+    befunde.push(erkannt && beideHoch
+      ? {art:"gut", titel:"Widersprüchliche Meldungen erkannt",
+         text:"Zwei Nachrichten desselben Morgens beschreiben denselben Sachverhalt gegensätzlich. Sie haben beide beachtet und in der Begründung auf die Klärung verwiesen. Genau das ist die Kernaufgabe eines Postkorbs."}
+      : {art:"schlecht", titel:"Ein Widerspruch blieb unbearbeitet",
+         text:"«"+liste.find(x=>x.id===a).betreff+"» und «"+liste.find(x=>x.id===c).betreff+"» widersprechen sich. Wer auf dieser Grundlage handelt, entscheidet auf einer Information, die zur Hälfte falsch ist. Widersprüche zu erkennen und vor dem Handeln zu klären, ist der eigentliche Prüfungsgegenstand."});
+  });
+
+  // Ereignisse hoch genug?
+  const ereignisse = liste.filter(n=>n.ereignis);
+  const ereignisTief = ereignisse.filter(n=>(S.postkorb[n.id]||{}).prio==="C");
+  befunde.push(ereignisTief.length===0
+    ? {art:"gut", titel:"Entscheidungsbedarf richtig erkannt", text:"Alle Nachrichten, die einen Entscheid verlangen, sind mindestens auf B eingestuft."}
+    : {art:"schlecht", titel:"Ein Entscheid wurde auf C gesetzt", text:ereignisTief.map(n=>"«"+n.betreff+"»").join(", ")+" verlangt einen Entscheid der Geschäftsleitung. Auf C eingestuft heisst faktisch: verschoben."});
+
+  // Störgeräusche
+  const stoer = liste.filter(n=>n.stoerung);
+  if(stoer.length){
+    const ok = stoer.every(n=>(S.postkorb[n.id]||{}).prio==="C" || S.archiviert.includes(n.id));
+    befunde.push(ok
+      ? {art:"gut", titel:"Nebengeräusche korrekt behandelt", text:"Nachrichten ohne Frist und ohne Handlungsbedarf tief einzustufen oder abzulegen, schafft Zeit für das Wesentliche."}
+      : {art:"", titel:"Nicht jede Nachricht braucht Aufmerksamkeit", text:"Ein Postkorb enthält immer Material, dessen richtige Behandlung das Weglegen ist."});
+  }
+
+  if(zaehl.A>=Math.ceil(liste.length*0.6))
+    befunde.push({art:"schlecht", titel:"Zu viele A-Prioritäten",
+      text:zaehl.A+" von "+liste.length+" Nachrichten stehen auf A. Wenn fast alles oberste Priorität hat, ist nichts priorisiert."});
+
+  const unbearbeitet = liste.filter(n=>!pkFertig(n.id)).length;
+  if(unbearbeitet)
+    befunde.push({art:"", titel:unbearbeitet+" Nachrichten blieben unbearbeitet",
+      text:"Auch das ist eine Entscheidung – nur eine unausgesprochene. In der Prüfung zählt, was Sie schriftlich festhalten."});
+
+  document.getElementById("blatt").innerHTML = `
+    <h2>Auswertung des Postkorbs – ${QUARTALE[S.periode]}</h2>
+    <p class="lead">${zeitAus?"Die 30 Minuten sind abgelaufen. ":""}${liste.length-unbearbeitet} von ${liste.length} Nachrichten vollständig bearbeitet, davon ${zaehl.A} auf Priorität A. Die Befunde sind Diskussionsanstösse fürs Debriefing, keine Punktzahl.</p>
+    ${befunde.map(b=>`<div class="befund ${b.art}"><b>${b.titel}</b>${b.text}</div>`).join("")}
+    <table><tr><th>Nachricht</th><th>Ihre Einstufung</th><th>Musterüberlegung</th></tr>
+    ${liste.map(n=>{
+      const b = S.postkorb[n.id]||{};
+      return `<tr><td><b>${n.betreff}</b><br><span style="color:var(--stahl)">${n.von}</span></td>
+        <td>${b.prio?`${b.prio} · ${AKTIONSNAME[b.aktion]||"keine Massnahme"}`:"nicht bearbeitet"}
+        ${b.notiz?`<br><span style="color:var(--stahl)">${b.notiz}</span>`:""}</td>
+        <td><b>${n.muster.prio} · ${AKTIONSNAME[n.muster.aktion]}</b><br>${n.muster.warum}</td></tr>`;
+    }).join("")}</table>
+    <div class="knopfleiste"><button class="knopf" id="auswZu">Zurück zum Postfach</button></div>`;
+  document.getElementById("auswertung").classList.add("offen");
+  document.getElementById("auswZu").onclick = ()=>document.getElementById("auswertung").classList.remove("offen");
+}
+
+/* ===================================================================
+   8) STEUERUNG
+   =================================================================== */
+const REITERNAMEN = [["lage","Lage"],["postkorb","Postkorb"],["entscheide","Entscheide"],
+  ["fuehrung","Führung"],["steuerung","Steuerung"],["finanzen","Finanzen"],["betrieb","Betrieb"],["journal","Journal"]];
+let aktiverReiter = "lage";
+
+function kennzahlenRendern(){
+  const e = letzte(), bs = bilanzsumme();
+  const liq2 = (S.kasse+S.forderungen+S.uebrigesUV)/kurzfristigesFK();
+  const ekq = S.eigenkapital/bs;
+  const d = [
+    {t:"Flüssige Mittel", w:"CHF "+fmt(S.kasse), f:"Kassenbestand nach allen Ein- und Auszahlungen der Periode.", s:S.kasse<300000?"schlecht":""},
+    {t:"EBIT-Marge", w:e?pct(e.ebit/e.umsatz):"–", f:"EBIT geteilt durch Nettoerlös. Branchenmittel 4 bis 6 %.", s:e?(e.ebit/e.umsatz>0.045?"gut":(e.ebit/e.umsatz<0.02?"schlecht":"")):""},
+    {t:"Eigenkapitalquote", w:pct(ekq), f:"Eigenkapital "+fmt(S.eigenkapital)+" geteilt durch Bilanzsumme "+fmt(bs)+".", s:ekq>0.45?"gut":"schlecht"},
+    {t:"Liquiditätsgrad 2", w:pct(liq2,0), f:"(Flüssige Mittel + Forderungen + übriges UV) durch kurzfristiges Fremdkapital. Richtwert 100 bis 120 %.", s:liq2<1?"schlecht":(liq2>1.1?"gut":"")},
+    {t:"Auslastung", w:pct(S.auslastung,0), f:"Verkaufte Stunden durch Kapazität von "+fmt(kapazitaet())+" Stunden pro Quartal.", s:(S.auslastung>0.95||S.auslastung<0.75)?"schlecht":"gut"},
+    {t:"Termintreue", w:pct(S.termintreue,0), f:"Ziel 96 %. Sinkt bei Überlastung und Ausschuss, steigt mit der Motivation.", s:S.termintreue>=0.94?"gut":(S.termintreue<0.90?"schlecht":"")},
+    {t:"Motivationsindex", w:pct(S.motivation,0), f:"Wirkt auf Absenzen, Fluktuation, Qualität, Termintreue und die Erfolgsquote bei Rekrutierungen. Start 72 %.", s:S.motivation>=0.80?"gut":(S.motivation<0.60?"schlecht":"")},
+    {t:"Fluktuation", w:pct(S.fluktuation), f:"Auf das Jahr gerechnet, folgt direkt der Motivation. Jeder Abgang kostet Wissen.", s:S.fluktuation<0.09?"gut":(S.fluktuation>0.15?"schlecht":"")},
+    {t:"Überzeitsaldo", w:fmt(S.ueberzeitSaldo)+" h", f:"Wächst bei Auslastung über 90 %. Verbindlichkeit gegenüber den Mitarbeitenden.", s:S.ueberzeitSaldo>6000?"schlecht":(S.ueberzeitSaldo<3000?"gut":"")},
+    {t:"Offene Stellen", w:String(offeneStellen()), f:"Gegenüber dem Sollbestand. In der Schweisserei begrenzt jede offene Stelle den Durchsatz des Betriebs.", s:offeneStellen()===0?"gut":(offeneStellen()>3?"schlecht":"")}
+  ];
+  document.getElementById("kennzahlen").innerHTML = d.map(x=>`
+    <button class="kz"><div class="titel">${x.t}</div><div class="wert ${x.s}">${x.w}</div>
+    <div class="formel">${x.f}</div></button>`).join("");
+  document.querySelectorAll(".kz").forEach(b=>b.onclick=()=>b.classList.toggle("offen"));
+}
+
+function warnbalkenRendern(){
+  const b = document.getElementById("warnbalken");
+  const offen = offeneEreignisse().filter(ev=>{
+    const w = S.wahl[ev.id];
+    return !(w && w.option!==undefined && (w.begruendung||"").trim().length>=40);
+  }).length;
+  if(S.beendet || offen===0){ b.classList.remove("sichtbar"); return; }
+  document.getElementById("warntext").textContent = offen===1 ? "1 Entscheid offen – mit Begründung" : offen+" Entscheide offen – je mit Begründung";
+  b.classList.add("sichtbar");
+}
+
+function reiterRendern(){
+  const st = pkStand();
+  document.getElementById("reiterleiste").innerHTML = REITERNAMEN.map(([id,name])=>{
+    const punkt = (id==="postkorb" && !S.beendet && st.total-st.fertig>0) ? `<span class="punkt">${st.total-st.fertig}</span>` : "";
+    return `<button data-reiter="${id}" class="${aktiverReiter===id?"aktiv":""}">${name}${punkt}</button>`;
+  }).join("");
+  document.querySelectorAll("nav.app button").forEach(b=>b.onclick=()=>{aktiverReiter=b.dataset.reiter; zeichnen();});
+}
+
+function zeichnen(){
+  document.getElementById("periodeAnzeige").innerHTML =
+    (S.beendet?"Abgeschlossen":QUARTALE[S.periode]) +
+    `<small>Periode ${Math.min(S.periode+1,8)} von 8 · ${gesamtPersonal()} Mitarbeitende</small>`;
+  kennzahlenRendern(); warnbalkenRendern(); reiterRendern();
+  const main = document.getElementById("inhalt");
+  main.classList.toggle("breit", aktiverReiter==="postkorb");
+  main.innerHTML = REITER[aktiverReiter]();
+  verdrahten();
+  if(aktiverReiter==="postkorb"){ mailListeZeichnen(); if(mailGewaehlt) mailOeffnen(mailGewaehlt); }
+}
+
+function verdrahten(){
+  document.querySelectorAll('input[type=radio][name^="opt_"]').forEach(r=>{
+    r.onchange = ()=>{
+      const id = r.name.slice(4);
+      S.wahl[id] = S.wahl[id]||{}; S.wahl[id].option = +r.value;
+      document.getElementById("inhalt").innerHTML = REITER.entscheide();
+      verdrahten(); warnbalkenRendern();
+    };
+  });
+  document.querySelectorAll("textarea[data-b]").forEach(t=>{
+    const id = t.dataset.b;
+    const pruefen = ()=>{
+      const n = t.value.trim().length;
+      const z = document.getElementById("z_"+id);
+      if(z){ z.textContent = n>=40 ? n+" Zeichen" : "Noch "+(40-n)+" Zeichen bis zur Mindestlänge";
+             z.className = "zaehler"+(n>=40?"":" fehlt"); }
+      const btn = document.getElementById("abschluss");
+      if(btn) btn.disabled = !alleEntschieden();
+      const st = document.getElementById("abschlussStatus");
+      if(st) st.textContent = alleEntschieden()?"":"Erst wenn jeder Entscheid gewählt und begründet ist.";
+    };
+    t.oninput = ()=>{ S.wahl[id]=S.wahl[id]||{}; S.wahl[id].begruendung=t.value; pruefen(); warnbalkenRendern(); };
+    pruefen();
+  });
+  const b1 = document.getElementById("abschluss");
+  if(b1){ b1.disabled = !alleEntschieden(); b1.onclick = periodeAbschliessen; }
+  const b2 = document.getElementById("abschlussZwei");
+  if(b2) b2.onclick = ()=>{ if(alleEntschieden()) periodeAbschliessen(); else {aktiverReiter="entscheide"; zeichnen();} };
+  document.querySelectorAll("[data-gehe]").forEach(b=>b.onclick=()=>{aktiverReiter=b.dataset.gehe; zeichnen();});
+
+  const preis = document.getElementById("preis");
+  if(preis) preis.oninput = ()=>{ S.preisindex=+preis.value/100; document.getElementById("preisWert").textContent=preis.value+" %"; };
+  const ziel = document.getElementById("ziel"); if(ziel) ziel.onchange = ()=>S.zahlungszielTage=+ziel.value;
+  const sch = document.getElementById("schicht"); if(sch) sch.onchange = ()=>S.zweiSchicht = sch.value==="1";
+  const mk = document.getElementById("marketing"); if(mk) mk.onchange = ()=>S.marketingQuartal=+mk.value||0;
+
+  const lohn = document.getElementById("lohn");
+  if(lohn){
+    const zeigen = ()=>{
+      S.lohnindex = +lohn.value/100;
+      document.getElementById("lohnWert").textContent = lohn.value+" %";
+      const delta = (S.lohnindex-1)*9170000;
+      document.getElementById("lohnKosten").textContent = delta===0 ? "Unverändert gegenüber dem Startniveau."
+        : (delta>0?"Mehrkosten ":"Minderkosten ")+"von rund CHF "+fmt(Math.abs(delta))+" pro Jahr.";
+    };
+    lohn.oninput = zeigen; zeigen();
+  }
+  const wb = document.getElementById("weiterbildung"); if(wb) wb.onchange = ()=>S.weiterbildungQuartal=+wb.value||0;
+  const au = document.getElementById("ausschreibungen"); if(au) au.onchange = ()=>S.ausschreibungen=+au.value||0;
+  const uz = document.getElementById("ueberzeit"); if(uz) uz.onchange = ()=>S.ueberzeitAuszahlen=uz.checked;
+
+  ["fUngelesen","ungelesen"],["fMarkiert","markiert"],["fOffen","offen"];
+  [["fUngelesen","ungelesen"],["fMarkiert","markiert"],["fOffen","offen"]].forEach(([kid,key])=>{
+    const k = document.getElementById(kid);
+    if(k) k.onclick = ()=>{ mailFilter[key]=!mailFilter[key]; k.setAttribute("aria-pressed",mailFilter[key]); mailListeZeichnen(); };
+  });
+  const su = document.getElementById("suche");
+  if(su) su.oninput = e=>{ mailFilter.text = e.target.value; mailListeZeichnen(); };
+  const ar = document.getElementById("wzArchiv");
+  if(ar) ar.onclick = ()=>{
+    if(!mailGewaehlt) return;
+    S.archiviert.push(mailGewaehlt); mailGewaehlt = null;
+    document.getElementById("mailLesen").innerHTML = `<div class="leerfenster">Nachricht archiviert. Sie bleibt in der Auswertung enthalten.</div>`;
+    mailListeZeichnen();
+  };
+  const aw = document.getElementById("wzAuswertung"); if(aw) aw.onclick = ()=>postkorbAuswerten(false);
+  const uk = document.getElementById("uhrKnopf");
+  if(uk) uk.onclick = ()=>{ uhrLaeuft=!uhrLaeuft; uk.textContent = uhrLaeuft?"Anhalten":"Starten"; };
+
+  const em = document.getElementById("exportMd"); if(em) em.onclick = journalExportieren;
+  const ej = document.getElementById("exportJson"); if(ej) ej.onclick = standExportieren;
+}
+
+function periodeAbschliessen(){
+  // Postkorb-Einstufungen ins Journal
+  postkorbListe().forEach(n=>{
+    const b = S.postkorb[n.id];
+    if(b && b.prio && (b.notiz||"").trim().length>=25){
+      S.journal.push({quartal:QUARTALE[S.periode], titel:"Postkorb: "+n.betreff, art:"postkorb",
+        hkb:"G3 Arbeitstechniken · G4 Probleme lösen · Prüfungsteil 4",
+        gewaehlt:"Priorität "+b.prio+" · "+(AKTIONSNAME[b.aktion]||"–"), begruendung:b.notiz.trim()});
+    }
+  });
+  offeneEreignisse().forEach(ev=>{
+    const w = S.wahl[ev.id];
+    ev.optionen[w.option].wirkung(S);
+    S.erledigt.push(ev.id);
+    S.journal.push({quartal:QUARTALE[S.periode], titel:ev.titel, hkb:ev.hkb, art:ev.art,
+      gewaehlt:ev.optionen[w.option].label, begruendung:w.begruendung.trim()});
+  });
+  periodeRechnen();
+  S.periode++;
+  if(S.periode>=QUARTALE.length){ S.periode = QUARTALE.length-1; S.beendet = true; }
+  mailGewaehlt = null; uhrLaeuft = false; restSekunden = K.postkorbMinuten*60;
+  aktiverReiter = "lage"; zeichnen(); window.scrollTo({top:0});
+}
+
+function herunterladen(name,inhalt,typ){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([inhalt],{type:typ}));
+  a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+function journalExportieren(){
+  let t = "Entscheidungsjournal – Bärtschi Metalltech AG\n\n";
+  S.journal.forEach(j=>{
+    t += j.quartal+"\n"+j.titel+"\nHandlungskompetenzen: "+j.hkb+"\nEntscheid: "+j.gewaehlt+"\nBegründung: "+j.begruendung+"\n\n";
+  });
+  t += "\nVerlauf\n";
+  S.ergebnisse.forEach(r=>{
+    t += r.quartal+": Umsatz "+fmt(r.umsatz)+", EBIT "+fmt(r.ebit)+", Gewinn "+fmt(r.gewinn)+
+         ", Auslastung "+pct(r.auslastung,0)+", Termintreue "+pct(r.termintreue,0)+
+         ", Motivation "+pct(r.motivation,0)+", Fluktuation "+pct(r.fluktuation)+", Bestand "+r.personen+"\n";
+  });
+  herunterladen("entscheidungsjournal.txt", t, "text/plain;charset=utf-8");
+}
+function standExportieren(){ herunterladen("spielstand.json", JSON.stringify(S,null,2), "application/json"); }
+
+zeichnen();
+</script>
+</body>
+</html>
